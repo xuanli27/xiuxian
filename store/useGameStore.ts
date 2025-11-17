@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { PlayerStats, Rank, SectRank, SpiritRootType, Task, GameView, RANK_THRESHOLDS, SECT_PROMOTION_COST, SHOP_ITEMS, SHOP_PRICES } from '../types';
+import { PlayerStats, Rank, SectRank, SpiritRootType, Task, GameView, RANK_THRESHOLDS, SECT_PROMOTION_COST, SHOP_ITEMS, SHOP_PRICES, Theme } from '../types';
 import { generateOfflineSummary } from '../services/geminiService';
 
 const INITIAL_STATS: PlayerStats = {
@@ -18,6 +18,7 @@ const INITIAL_STATS: PlayerStats = {
   location: '工位',
   history: [],
   inventory: {},
+  theme: 'dark',
   createTime: Date.now(),
   lastLoginTime: Date.now()
 };
@@ -34,6 +35,7 @@ interface GameState {
   // Actions
   setView: (view: GameView) => void;
   setPlayer: (player: Partial<PlayerStats>) => void;
+  setTheme: (theme: Theme) => void;
   setTasks: (tasks: Task[]) => void;
   completeTask: (task: Task) => void;
   gainQi: (amount: number) => void;
@@ -58,6 +60,8 @@ export const useGameStore = create<GameState>()(
       setView: (view) => set({ view }),
       
       setPlayer: (updates) => set((state) => ({ player: { ...state.player, ...updates } })),
+      
+      setTheme: (theme) => set((state) => ({ player: { ...state.player, theme } })),
       
       setTasks: (tasks) => set({ tasks }),
 
@@ -186,6 +190,11 @@ export const useGameStore = create<GameState>()(
         const state = get();
         const now = Date.now();
         const diffSeconds = (now - state.player.lastLoginTime) / 1000;
+
+        // Ensure theme is valid (migration)
+        if (!state.player.theme) {
+             set((state) => ({ player: { ...state.player, theme: 'dark' }}));
+        }
 
         if (diffSeconds > 60 && state.view !== GameView.ONBOARDING_SPIRIT && state.view !== GameView.ONBOARDING_MIND) {
            const gainedQi = diffSeconds * OFFLINE_QI_RATE;

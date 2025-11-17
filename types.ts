@@ -9,6 +9,8 @@ export enum GameView {
   REINCARNATION = 'REINCARNATION'
 }
 
+export type Theme = 'dark' | 'ink' | 'cyber';
+
 export enum Rank {
   MORTAL = '试用期(凡人)',
   QI_REFINING = '练气实习生',
@@ -60,6 +62,7 @@ export interface PlayerStats {
   location: string; 
   history: string[]; 
   inventory: Record<string, number>; // ItemID -> Count
+  theme: Theme; // User preference
   createTime: number;
   lastLoginTime: number;
 }

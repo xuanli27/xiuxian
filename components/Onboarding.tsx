@@ -3,10 +3,6 @@ import { GameView, SpiritRootType } from '../types';
 import { generateSpiritRootFeedback } from '../services/geminiService';
 import { Zap, Check, Eraser } from 'lucide-react';
 
-interface Props {
-  onComplete: (root: SpiritRootType, mind: string, avatar: string) => void;
-}
-
 export const SpiritRootCanvas: React.FC<{ onNext: (root: SpiritRootType, avatar: string) => void }> = ({ onNext }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -38,7 +34,7 @@ export const SpiritRootCanvas: React.FC<{ onNext: (root: SpiritRootType, avatar:
     
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
-    ctx.strokeStyle = '#A7F3D0'; // Emerald 200
+    ctx.strokeStyle = '#10B981'; // Emerald 500 default for spirit
     ctx.lineTo(clientX - rect.left, clientY - rect.top);
     ctx.stroke();
   };
@@ -52,7 +48,6 @@ export const SpiritRootCanvas: React.FC<{ onNext: (root: SpiritRootType, avatar:
     if (!canvas) return;
     setAnalyzing(true);
 
-    // Simple Pixel Analysis
     const ctx = canvas.getContext('2d');
     if(!ctx) return;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -84,17 +79,17 @@ export const SpiritRootCanvas: React.FC<{ onNext: (root: SpiritRootType, avatar:
     setAnalyzing(false);
 
     setTimeout(() => {
-      const avatarUrl = canvas.toDataURL(); // Save drawing as avatar
+      const avatarUrl = canvas.toDataURL();
       onNext(rootType, avatarUrl);
     }, 2000);
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 p-4 text-slate-200">
-      <h1 className="font-xianxia text-4xl text-emerald-400 mb-2">测灵根</h1>
-      <p className="mb-6 text-slate-400 text-sm">请随心绘制一笔，感知天地灵气</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-surface-950 p-4 text-content-100">
+      <h1 className="font-xianxia text-4xl text-primary-400 mb-2 animate-in fade-in slide-in-from-top-4 duration-700">测灵根</h1>
+      <p className="mb-6 text-content-400 text-sm font-serif">请随心绘制一笔，感知天地灵气</p>
       
-      <div className="relative border-4 border-slate-700 rounded-lg overflow-hidden shadow-2xl shadow-emerald-900/20 bg-slate-800">
+      <div className="relative border-4 border-surface-700 rounded-2xl overflow-hidden shadow-2xl shadow-primary-500/10 bg-surface-800">
         <canvas
           ref={canvasRef}
           width={300}
@@ -106,37 +101,37 @@ export const SpiritRootCanvas: React.FC<{ onNext: (root: SpiritRootType, avatar:
           onTouchStart={startDraw}
           onTouchMove={draw}
           onTouchEnd={stopDraw}
-          className="cursor-crosshair touch-none"
+          className="cursor-crosshair touch-none bg-surface-800"
         />
         {analyzing && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-             <div className="animate-pulse text-emerald-400 font-bold">鉴别中...</div>
+          <div className="absolute inset-0 bg-surface-950/50 backdrop-blur-sm flex items-center justify-center">
+             <div className="animate-pulse text-primary-400 font-bold font-xianxia text-2xl">鉴别中...</div>
           </div>
         )}
       </div>
 
-      <div className="mt-6 flex gap-4">
+      <div className="mt-8 flex gap-4">
         <button 
           onClick={() => {
              const canvas = canvasRef.current;
              if(canvas) canvas.getContext('2d')?.clearRect(0,0, canvas.width, canvas.height);
           }}
-          className="flex items-center gap-2 px-4 py-2 rounded bg-slate-700 hover:bg-slate-600 transition"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-700 hover:bg-surface-600 transition text-content-200 font-bold"
         >
           <Eraser size={18} /> 重绘
         </button>
         <button 
           onClick={analyzeSpirit}
           disabled={analyzing}
-          className="flex items-center gap-2 px-6 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition shadow-lg shadow-emerald-600/30"
+          className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold transition shadow-lg shadow-primary-600/30"
         >
           <Zap size={18} /> 鉴定
         </button>
       </div>
 
       {feedback && (
-        <div className="mt-6 p-4 bg-slate-800 border border-emerald-500/30 rounded max-w-md animate-fade-in">
-          <p className="text-emerald-300 italic">“{feedback}”</p>
+        <div className="mt-8 p-6 bg-surface-800 border border-primary-500/30 rounded-2xl max-w-md animate-in zoom-in duration-300 shadow-xl">
+          <p className="text-primary-400 italic text-center text-lg font-serif">“{feedback}”</p>
         </div>
       )}
     </div>
@@ -183,26 +178,26 @@ export const MindPathQuiz: React.FC<{ onComplete: (mind: string) => void }> = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 p-6 text-slate-200">
-      <h1 className="font-xianxia text-3xl text-indigo-400 mb-8">问心路</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-surface-950 p-6 text-content-100">
+      <h1 className="font-xianxia text-4xl text-secondary-400 mb-8 animate-in fade-in slide-in-from-top-4 duration-700">问心路</h1>
       
-      <div className="w-full max-w-md bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
-        <div className="mb-4 flex justify-between text-xs text-slate-500">
+      <div className="w-full max-w-md bg-surface-800 p-8 rounded-3xl border border-border-base shadow-2xl">
+        <div className="mb-6 flex justify-between text-xs text-content-400 font-bold tracking-widest">
           <span>QUESTION {step + 1}</span>
           <span>{questions.length} TOTAL</span>
         </div>
         
-        <h2 className="text-xl font-serif mb-6 leading-relaxed">{questions[step].q}</h2>
+        <h2 className="text-2xl font-serif mb-8 leading-relaxed font-bold">{questions[step].q}</h2>
         
-        <div className="space-y-3">
+        <div className="space-y-4">
           {questions[step].opts.map((opt, idx) => (
             <button
               key={idx}
               onClick={() => handleAnswer(idx)}
-              className="w-full text-left p-4 rounded-lg bg-slate-700 hover:bg-indigo-600 transition-colors duration-200 flex items-center justify-between group"
+              className="w-full text-left p-5 rounded-xl bg-surface-700 hover:bg-secondary-600 hover:text-white transition-all duration-200 flex items-center justify-between group border border-transparent hover:border-secondary-400/50 hover:shadow-lg"
             >
-              <span>{opt}</span>
-              <Check size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+              <span className="font-serif">{opt}</span>
+              <Check size={18} className="opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           ))}
         </div>

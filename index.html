@@ -2,73 +2,160 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>摸鱼修仙录 | Xianyu Sect</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@300;400;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    
+    <style type="text/tailwindcss">
+      @theme {
+        /* Semantic Colors mapped to CSS Variables */
+        --color-surface-950: var(--bg-main);
+        --color-surface-900: var(--bg-nav);
+        --color-surface-800: var(--bg-card);
+        --color-surface-700: var(--bg-card-hover);
+        --color-surface-600: var(--bg-input);
+        
+        --color-content-100: var(--text-main);
+        --color-content-200: var(--text-secondary);
+        --color-content-400: var(--text-muted);
+        
+        --color-primary-400: var(--accent-light);
+        --color-primary-500: var(--accent-main);
+        --color-primary-600: var(--accent-dark);
+        
+        --color-secondary-400: var(--secondary-light);
+        --color-secondary-600: var(--secondary-dark);
+
+        --color-danger-400: var(--danger-light);
+        --color-danger-600: var(--danger-dark);
+
+        --color-border-base: var(--border-color);
+        --color-border-highlight: var(--border-highlight);
+        
+        --font-xianxia: 'Ma Shan Zheng', cursive;
+        --font-cute: 'ZCOOL KuaiLe', cursive;
+      }
+    </style>
+
     <style>
+      :root {
+        /* === THEME: DARK (Default) === */
+        --bg-main: #020617; /* slate-950 */
+        --bg-nav: #0f172a; /* slate-900 */
+        --bg-card: #1e293b; /* slate-800 */
+        --bg-card-hover: #334155; /* slate-700 */
+        --bg-input: #1e293b;
+        
+        --text-main: #f1f5f9; /* slate-100 */
+        --text-secondary: #cbd5e1; /* slate-300 */
+        --text-muted: #94a3b8; /* slate-400 */
+        
+        --accent-light: #34d399; /* emerald-400 */
+        --accent-main: #10b981; /* emerald-500 */
+        --accent-dark: #059669; /* emerald-600 */
+        
+        --secondary-light: #fbbf24; /* amber-400 */
+        --secondary-dark: #d97706; /* amber-600 */
+        
+        --danger-light: #fb7185; /* rose-400 */
+        --danger-dark: #e11d48; /* rose-600 */
+
+        --border-color: #334155; /* slate-700 */
+        --border-highlight: #10b981;
+      }
+
+      [data-theme="ink"] {
+        /* === THEME: INK (Light/Xianxia) === */
+        --bg-main: #f2f2eb; /* Rice Paper */
+        --bg-nav: #e6e6df;
+        --bg-card: #ffffff;
+        --bg-card-hover: #f9fafb;
+        --bg-input: #f3f4f6;
+
+        --text-main: #1a1a1a; /* Ink Black */
+        --text-secondary: #374151;
+        --text-muted: #6b7280;
+
+        --accent-light: #ef4444; /* Seal Red 500 */
+        --accent-main: #dc2626; /* Red 600 */
+        --accent-dark: #b91c1c; /* Red 700 */
+        
+        --secondary-light: #d97706; /* Amber 600 (Darker for contrast) */
+        --secondary-dark: #92400e; /* Amber 800 */
+        
+        --danger-light: #ef4444;
+        --danger-dark: #991b1b;
+
+        --border-color: #e5e7eb;
+        --border-highlight: #dc2626;
+      }
+
+      [data-theme="cyber"] {
+        /* === THEME: CYBER (Neon) === */
+        --bg-main: #09090b; /* Zinc 950 */
+        --bg-nav: #18181b; /* Zinc 900 */
+        --bg-card: #27272a; /* Zinc 800 */
+        --bg-card-hover: #3f3f46; /* Zinc 700 */
+        --bg-input: #27272a;
+
+        --text-main: #fafafa;
+        --text-secondary: #e4e4e7;
+        --text-muted: #a1a1aa;
+
+        --accent-light: #e879f9; /* Fuchsia 400 */
+        --accent-main: #d946ef; /* Fuchsia 500 */
+        --accent-dark: #c026d3; /* Fuchsia 600 */
+
+        --secondary-light: #22d3ee; /* Cyan 400 */
+        --secondary-dark: #0891b2; /* Cyan 600 */
+        
+        --danger-light: #f43f5e;
+        --danger-dark: #be123c;
+
+        --border-color: #3f3f46;
+        --border-highlight: #d946ef;
+      }
+
       body {
         font-family: 'Noto Serif SC', serif;
-        background-color: #0f172a;
-        color: #e2e8f0;
+        background-color: var(--bg-main);
+        color: var(--text-main);
+        transition: background-color 0.3s ease, color 0.3s ease;
       }
       .font-xianxia {
         font-family: 'Ma Shan Zheng', cursive;
       }
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #1e293b; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #475569; 
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #64748b; 
-      }
       
-      /* 3D Utilities */
-      .perspective-1000 {
-        perspective: 1000px;
-      }
-      .preserve-3d {
-        transform-style: preserve-3d;
-      }
-      .backface-hidden {
-        backface-visibility: hidden;
-      }
-      .rotate-y-180 {
-        transform: rotateY(180deg);
-      }
+      /* 3D & Animation Utils */
+      .perspective-1000 { perspective: 1000px; }
+      .preserve-3d { transform-style: preserve-3d; }
+      .backface-hidden { backface-visibility: hidden; }
+      .rotate-y-180 { transform: rotateY(180deg); }
       
-      @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-      }
-      .animate-float {
-        animation: float 3s ease-in-out infinite;
-      }
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "d3": "https://aistudiocdn.com/d3@^7.9.0",
-    "zustand": "https://aistudiocdn.com/zustand@^5.0.3",
-    "zustand/middleware": "https://aistudiocdn.com/zustand@^5.0.3/middleware",
-    "clsx": "https://aistudiocdn.com/clsx@^2.1.1",
-    "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/"
-  }
-}
-</script>
-</head>
+    
+    <script type="importmap">
+    {
+      "imports": {
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1",
+        "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0",
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "d3": "https://aistudiocdn.com/d3@^7.9.0",
+        "zustand": "https://aistudiocdn.com/zustand@^5.0.3",
+        "zustand/middleware": "https://aistudiocdn.com/zustand@^5.0.3/middleware",
+        "clsx": "https://aistudiocdn.com/clsx@^2.1.1",
+        "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/"
+      }
+    }
+    </script>
+  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
