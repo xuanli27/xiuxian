@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import { Button } from '../../ui/Shared';
+import { Button } from '../../ui';
 
 export const StockMarketGame = ({ onComplete }: { onComplete: (s: boolean) => void }) => {
     const [data, setData] = useState<number[]>([]);

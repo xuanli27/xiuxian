@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Swords, Shield, Zap } from 'lucide-react';
-import { Button } from '../../ui/Shared';
+import { Button } from '../../ui';
 
 export const BattleArena = ({ playerPower, enemy, onComplete }: { playerPower: number, enemy: any, onComplete: (s: boolean) => void }) => {
    const [log, setLog] = useState<string[]>(["遭遇了 " + enemy.name + "!"]);

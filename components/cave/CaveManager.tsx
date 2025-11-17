@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { CAVE_LEVELS, MATERIALS } from '../../data/constants';
 import { ArrowUpCircle, Hammer, Home } from 'lucide-react';
-import { Button, Card } from '../ui/Shared';
+import { Button, Card } from '../ui';
 import clsx from 'clsx';
 
 export const CaveManager: React.FC = () => {

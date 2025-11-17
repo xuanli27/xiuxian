@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { ALL_ITEMS, MATERIALS } from '../../data/constants';
 import { EquipmentPanel } from './EquipmentPanel';
 import { PackageOpen, Zap, ShieldMinus, MoveUp, Backpack } from 'lucide-react';
-import { Button, PageHeader } from '../ui/Shared';
+import { Button, PageHeader } from '../ui';
 import clsx from 'clsx';
 
 export const Inventory: React.FC = () => {

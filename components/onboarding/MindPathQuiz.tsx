@@ -1,7 +1,6 @@
-
 import React, { useState, useRef } from 'react';
 import { Check, BrainCircuit } from 'lucide-react';
-import { Button } from '../ui/Shared';
+import { Button } from '../ui';
 import clsx from 'clsx';
 
 export const MindPathQuiz: React.FC<{ onComplete: (mind: string) => void }> = ({ onComplete }) => {

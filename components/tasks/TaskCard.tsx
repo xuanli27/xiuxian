@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Task } from '../../types';
 import { Scroll, Briefcase, Swords, Link2, CheckCircle, Coins } from 'lucide-react';
-import { Button, Badge } from '../ui/Shared';
+import { Button, Badge } from '../ui';
 import clsx from 'clsx';
 
 export const TaskCard = ({ task, onStart }: { task: Task, onStart: () => void }) => {

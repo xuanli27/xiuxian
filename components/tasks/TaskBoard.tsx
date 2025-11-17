@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { Task } from '../../types';
 import { getRankLabel } from '../../data/constants';
 import { generateDailyTasks } from '../../services/geminiService';
 import { RefreshCw, Loader2, Swords, Compass, MousePointerClick } from 'lucide-react';
-import { Button, Modal, PageHeader } from '../ui/Shared';
+import { Button, Modal, PageHeader } from '../ui';
 import { TaskCard } from './TaskCard';
 import { NavigationStation } from './NavigationStation';
 import { MessageCleanerGame } from './minigames/MessageCleanerGame';

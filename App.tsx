@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { GameView, Rank, SpiritRootType } from './types';
 import { useGameStore } from './store/useGameStore';
@@ -6,13 +5,13 @@ import { IntroStory } from './components/onboarding/IntroStory';
 import { SpiritRootCanvas } from './components/onboarding/SpiritRootCanvas';
 import { MindPathQuiz } from './components/onboarding/MindPathQuiz';
 import { Dashboard } from './components/dashboard/Dashboard';
-import { Tribulation } from './components/Tribulation';
+import { Tribulation } from './components/tribulation/Tribulation';
 import { TaskBoard } from './components/tasks/TaskBoard';
 import { SectHall } from './components/sect/SectHall';
 import { Inventory } from './components/inventory/Inventory';
 import { CaveAbode } from './components/cave/CaveAbode';
 import { Layout } from './components/layout/Layout';
-import { Modal } from './components/ui/Shared';
+import { Modal } from './components/ui';
 import { ScrollText } from 'lucide-react';
 
 export default function App() {

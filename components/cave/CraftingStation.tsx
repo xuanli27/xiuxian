@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { RECIPES, MATERIALS } from '../../data/constants';
 import { Info, Hammer, Flame } from 'lucide-react';
-import { Button } from '../ui/Shared';
+import { Button } from '../ui';
 import clsx from 'clsx';
 
 export const CraftingStation: React.FC = () => {

@@ -1,9 +1,8 @@
-
 import React, { useRef, useState } from 'react';
 import { SpiritRootType } from '../../types';
 import { generateSpiritRootFeedback } from '../../services/geminiService';
 import { Zap, Eraser, Palette } from 'lucide-react';
-import { Button } from '../ui/Shared';
+import { Button } from '../ui';
 
 export const SpiritRootCanvas: React.FC<{ onNext: (root: SpiritRootType, avatar: string) => void }> = ({ onNext }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);

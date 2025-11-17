@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { MOYU_SITES } from '../../data/constants';
 import { Compass, Globe, ExternalLink, CheckCircle, Loader2, Briefcase, BrainCircuit, Code, TrendingUp, X } from 'lucide-react';
-import { Button } from '../ui/Shared';
+import { Button } from '../ui';
 import { StockMarketGame } from './minigames/StockMarketGame';
 import { LogicPuzzleGame } from './minigames/LogicPuzzleGame';
 import clsx from 'clsx';

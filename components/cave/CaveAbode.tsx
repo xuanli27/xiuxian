@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Home, FlaskConical } from 'lucide-react';
-import { PageHeader } from '../ui/Shared';
+import { PageHeader } from '../ui';
 import { CaveManager } from './CaveManager';
 import { CraftingStation } from './CraftingStation';
 import clsx from 'clsx';
