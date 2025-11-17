@@ -1,0 +1,8 @@
+{
+  "name": "Moyu Xiuxian Lu",
+  "description": "An idle cultivation game driven by events and slacking off. Cultivate immortality while navigating the workplace.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
