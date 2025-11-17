@@ -1,29 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import { useGameStore } from '../../store/useGameStore';
-import { Task } from '../../types';
-import { getRankLabel } from '../../data/constants';
-import { generateDailyTasks } from '../../services/geminiService';
+'use client'
+
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, Loader2, Swords, Compass, MousePointerClick } from 'lucide-react';
 import { Button, Modal, PageHeader } from '../ui';
 import { TaskCard } from './TaskCard';
 import { NavigationStation } from './NavigationStation';
 import { MessageCleanerGame } from './minigames/MessageCleanerGame';
 import { BattleArena } from './minigames/BattleArena';
+import { getPlayerTasks } from '@/features/tasks/queries';
+import { generateMultipleAITasks, completeTask } from '@/features/tasks/actions';
+import type { Task, Player } from '@prisma/client';
 
-export const TaskBoard: React.FC = () => {
-  const { player, tasks, setTasks, completeTask } = useGameStore();
-  const [loading, setLoading] = useState(false);
+interface Props {
+  initialTasks: Task[]
+  player: Player
+}
+
+export const TaskBoard: React.FC<Props> = ({ initialTasks, player }) => {
+  const queryClient = useQueryClient();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => { if (tasks.length === 0) refreshTasks(); }, []);
+  const { data: tasks, isLoading: isLoadingTasks } = useQuery({
+    queryKey: ['tasks', player.id],
+    queryFn: () => getPlayerTasks(player.id.toString()),
+    initialData: initialTasks,
+  });
 
-  const refreshTasks = async () => {
-    setLoading(true);
-    const newTasks = await generateDailyTasks(getRankLabel(player.rank, player.level)); 
-    setTasks(newTasks);
-    setLoading(false);
-  };
+  const generateTasks = useMutation({
+    mutationFn: () => generateMultipleAITasks([player.rank, player.sectRank], 4),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', player.id] });
+    },
+  });
+
+  const complete = useMutation({
+    mutationFn: (taskId: string) => completeTask(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', player.id] });
+      queryClient.invalidateQueries({ queryKey: ['player', player.id] });
+    },
+  });
 
   const handleStartTask = (task: Task) => {
     setActiveTask(task);
@@ -31,9 +49,12 @@ export const TaskBoard: React.FC = () => {
   };
 
   const handleComplete = (success: boolean) => {
-    if (activeTask) {
-        completeTask(activeTask, success);
-        setTimeout(() => { setShowModal(false); setActiveTask(null); }, 500);
+    if (activeTask && success) {
+      complete.mutate(activeTask.id);
+      setTimeout(() => { setShowModal(false); setActiveTask(null); }, 500);
+    } else {
+      setShowModal(false);
+      setActiveTask(null);
     }
   };
 
@@ -41,25 +62,25 @@ export const TaskBoard: React.FC = () => {
     <div className="pb-24">
       <PageHeader 
         title="需求池" 
-        subtitle={`待办事项: ${tasks.filter(t => !t.completed).length}`}
+        subtitle={`待办事项: ${tasks?.filter(t => t.status !== 'COMPLETED').length}`}
         rightContent={
-             <Button variant="outline" size="sm" onClick={refreshTasks} loading={loading} icon={<RefreshCw size={14} />}>
+             <Button variant="outline" size="sm" onClick={() => generateTasks.mutate()} loading={generateTasks.isPending} icon={<RefreshCw size={14} />}>
                 刷新OA
             </Button>
         }
       />
-
+      
       <div className="grid gap-4">
-        {loading ? (
+        {isLoadingTasks ? (
            <div className="flex flex-col items-center justify-center py-20 text-content-400 space-y-4">
                <Loader2 className="animate-spin text-primary-400" size={40} />
                <p className="font-mono text-sm animate-pulse">SYNCING_WORK_ORDERS...</p>
            </div>
         ) : (
-          tasks.map(task => <TaskCard key={task.id} task={task} onStart={() => handleStartTask(task)} />)
+          tasks?.map(task => <TaskCard key={task.id} task={task} onStart={() => handleStartTask(task)} />)
         )}
       </div>
-
+      
       <Modal 
         isOpen={showModal} 
         onClose={() => setShowModal(false)} 

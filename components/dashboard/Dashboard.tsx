@@ -1,25 +1,51 @@
+'use client'
+
 import React from 'react';
-import { useGameStore } from '../../store/useGameStore';
-import { RANK_CONFIG, CAVE_LEVELS, getRankLabel } from '../../data/constants';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Zap, Database, ShieldAlert, Coins, Home, ArrowUpCircle } from 'lucide-react';
 import { Button, Card } from '../ui';
 import { SpiritCoreVisualizer } from './SpiritCoreVisualizer';
 import clsx from 'clsx';
+import { getPlayerRealmInfo } from '@/features/cultivation/queries';
+import { startMeditation, attemptBreakthrough } from '@/features/cultivation/actions';
+import { getPlayerByUserId } from '@/features/player/queries';
+import { REALM_CONFIG } from '@/config/game';
+import type { Player } from '@prisma/client';
+import type { RealmInfo } from '@/features/cultivation/types';
 
 interface Props {
-  onBreakthrough: () => void;
+  initialPlayer: Player
+  initialRealmInfo: RealmInfo | null
 }
 
-export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
-  const { player, gainQi, minorBreakthrough } = useGameStore();
+export const Dashboard: React.FC<Props> = ({ initialPlayer, initialRealmInfo }) => {
+  const { data: player } = useQuery({
+    queryKey: ['player', initialPlayer.id],
+    queryFn: () => getPlayerByUserId(initialPlayer.userId),
+    initialData: initialPlayer,
+  });
+
+  const { data: realmInfo } = useQuery({
+    queryKey: ['realmInfo', initialPlayer.id],
+    queryFn: () => getPlayerRealmInfo(initialPlayer.id),
+    initialData: initialRealmInfo,
+  });
+
+  const meditation = useMutation({
+    mutationFn: () => startMeditation({ duration: 10 }),
+  });
   
-  const currentCave = CAVE_LEVELS.find(c => c.level === player.caveLevel) || CAVE_LEVELS[0];
-  const rankConfig = RANK_CONFIG[player.rank];
+  const breakthrough = useMutation({
+    mutationFn: () => attemptBreakthrough({ playerId: initialPlayer.id }),
+  });
+
+  if (!player || !realmInfo) {
+    return <div>加载中...</div>
+  }
   
   const canBreakthrough = player.qi >= player.maxQi;
-  const isMaxLevel = player.level >= rankConfig.maxLevel;
   const progress = Math.min(100, (player.qi / player.maxQi) * 100);
-  const displayRank = getRankLabel(player.rank, player.level);
+  const displayRank = `${realmInfo.name} ${player.level}级`;
 
   return (
     <div className="space-y-6">
@@ -28,21 +54,21 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
         <StatCard icon={<Database size={16} />} label="境界" value={displayRank} color="bg-blue-500/20 text-blue-400" delay={0} />
         <StatCard icon={<ShieldAlert size={16} />} label="心魔" value={`${player.innerDemon}%`} color={player.innerDemon > 80 ? "bg-red-500/20 text-red-500 animate-pulse" : "bg-danger-500/20 text-danger-400"} delay={100} />
         <StatCard icon={<Coins size={16} />} label="灵石" value={player.spiritStones} color="bg-amber-500/20 text-secondary-400" delay={200} />
-        <StatCard icon={<Home size={16} />} label="洞府" value={`${currentCave.qiMultiplier}x`} color="bg-emerald-500/20 text-primary-400" delay={300} />
+        <StatCard icon={<Home size={16} />} label="洞府" value={`${player.caveLevel}级`} color="bg-emerald-500/20 text-primary-400" delay={300} />
       </div>
-
+      
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Visualizer (Inner Vision) */}
         <div className="lg:col-span-2 relative group">
-             <SpiritCoreVisualizer onClick={() => gainQi(10 + player.level * 2)} />
+             <SpiritCoreVisualizer onClick={() => meditation.mutate()} />
         </div>
-
+        
         {/* Controls Panel */}
         <div className="flex flex-col gap-4">
             <Card className="flex-1 flex flex-col justify-center shadow-xl">
                 <div className="mb-6">
                     <div className="flex justify-between mb-2 text-sm font-bold items-end">
-                        <span className="text-content-200 text-lg font-xianxia">{rankConfig.title}考核</span>
+                        <span className="text-content-200 text-lg font-xianxia">{realmInfo.name}考核</span>
                         <span className="text-primary-400 font-mono text-xl">{progress.toFixed(1)}%</span>
                     </div>
                     
@@ -65,16 +91,16 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
                 <Button
                     size="lg"
                     disabled={!canBreakthrough}
-                    onClick={isMaxLevel ? onBreakthrough : minorBreakthrough}
-                    variant={isMaxLevel ? 'danger' : 'secondary'}
+                    onClick={() => breakthrough.mutate()}
+                    variant={'danger'}
                     className={clsx("w-full h-16 text-lg relative overflow-hidden", canBreakthrough && "animate-pulse")}
-                    icon={isMaxLevel ? <Zap size={24} /> : <ArrowUpCircle size={24} />}
+                    icon={<Zap size={24} />}
                 >
                      {canBreakthrough 
-                        ? (isMaxLevel ? `渡劫 (晋升${RANK_CONFIG[player.rank].title})` : "突破小境界")
-                        : (isMaxLevel ? "灵气不足以渡劫" : "闭关积累中")}
+                        ? `渡劫 (晋升${REALM_CONFIG.names[realmInfo.rank]})`
+                        : "闭关积累中"}
                 </Button>
-
+                
                 {player.innerDemon > 50 && (
                   <div className="mt-4 bg-danger-900/20 border border-danger-500/30 p-3 rounded-xl flex items-start gap-3 text-danger-400 text-xs animate-pulse">
                      <ShieldAlert size={16} className="shrink-0 mt-0.5" />

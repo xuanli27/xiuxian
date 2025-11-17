@@ -1,35 +1,69 @@
+'use client'
+
 import React from 'react';
-import { useGameStore } from '../../store/useGameStore';
-import { CAVE_LEVELS, MATERIALS } from '../../data/constants';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowUpCircle, Hammer, Home } from 'lucide-react';
 import { Button, Card } from '../ui';
 import clsx from 'clsx';
+import { getPlayerCave, getCaveStats } from '@/features/cave/queries';
+import { upgradeCave } from '@/features/cave/actions';
+import { CAVE_CONFIG } from '@/config/game';
+import { calculateCaveUpgradeCost } from '@/features/cave/utils';
+import type { Player } from '@prisma/client';
+import type { Cave } from '@/features/cave/types';
 
-export const CaveManager: React.FC = () => {
-  const { player, upgradeCave } = useGameStore();
-  const currentLevelConfig = CAVE_LEVELS.find(c => c.level === player.caveLevel) || CAVE_LEVELS[0];
-  const nextLevelConfig = CAVE_LEVELS.find(c => c.level === player.caveLevel + 1);
+interface Props {
+  initialCave: Cave
+  player: Player
+}
+
+export const CaveManager: React.FC<Props> = ({ initialCave, player }) => {
+  const queryClient = useQueryClient();
+
+  const { data: cave } = useQuery({
+    queryKey: ['cave', player.id],
+    queryFn: () => getPlayerCave(player.id),
+    initialData: initialCave,
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ['caveStats', player.id],
+    queryFn: () => getCaveStats(player.id),
+  });
+
+  const upgrade = useMutation({
+    mutationFn: () => upgradeCave({ playerId: player.id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cave', player.id] });
+      queryClient.invalidateQueries({ queryKey: ['caveStats', player.id] });
+      queryClient.invalidateQueries({ queryKey: ['player', player.id] });
+    },
+  });
+
+  if (!cave || !stats) {
+    return <div>加载中...</div>
+  }
+
+  const nextLevel = cave.level + 1;
+  const nextLevelConfig = CAVE_CONFIG.levelNames[nextLevel as keyof typeof CAVE_CONFIG.levelNames];
+  const upgradeCost = calculateCaveUpgradeCost(cave.level);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="relative h-56 bg-surface-800 rounded-3xl border border-border-base mb-8 overflow-hidden group shadow-2xl">
         <div className="absolute inset-0 bg-gradient-to-br from-surface-800 via-surface-900 to-surface-950 z-0" />
-        {/* Ambient Light */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/10 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
-        
         <div className="absolute inset-0 flex items-center justify-center opacity-10 text-[10rem] select-none grayscale group-hover:grayscale-0 transition-all duration-1000 transform group-hover:scale-110">🏠</div>
-        
         <div className="absolute bottom-8 left-8 z-10">
-          <h2 className="text-4xl font-xianxia text-primary-400 mb-1">{currentLevelConfig.name}</h2>
+          <h2 className="text-4xl font-xianxia text-primary-400 mb-1">{cave.name}</h2>
           <div className="flex items-center gap-3">
-             <span className="px-3 py-1 bg-primary-900/30 border border-primary-500/30 rounded-full text-primary-300 text-xs font-bold">Lv.{player.caveLevel}</span>
+             <span className="px-3 py-1 bg-primary-900/30 border border-primary-500/30 rounded-full text-primary-300 text-xs font-bold">Lv.{cave.level}</span>
              <p className="text-content-400 text-sm font-serif italic">“斯是陋室，惟吾德馨”</p>
           </div>
         </div>
-        
         <div className="absolute top-6 right-6 z-10 bg-surface-900/90 backdrop-blur-md px-5 py-3 rounded-2xl border border-border-base text-sm font-mono text-primary-400 shadow-lg flex flex-col items-end">
-             <span className="text-[10px] text-content-400 uppercase tracking-wider">Qi Multiplier</span>
-             <span className="text-xl font-bold">x{currentLevelConfig.qiMultiplier}</span>
+             <span className="text-[10px] text-content-400 uppercase tracking-wider">灵气浓度</span>
+             <span className="text-xl font-bold">{cave.spiritDensity}</span>
         </div>
       </div>
 
@@ -43,13 +77,13 @@ export const CaveManager: React.FC = () => {
           <>
             <div className="flex justify-between items-center mb-8 text-sm bg-surface-900/50 p-4 rounded-2xl border border-white/5">
                <div className="space-y-3">
-                    <div className="text-content-400">当前加成 <span className="text-content-100 text-lg ml-2 font-bold">{currentLevelConfig.qiMultiplier}x</span></div>
-                    <div className="text-content-400">最大任务 <span className="text-content-100 text-lg ml-2 font-bold">{currentLevelConfig.maxTasks}</span></div>
+                    <div className="text-content-400">当前等级 <span className="text-content-100 text-lg ml-2 font-bold">{cave.level}</span></div>
+                    <div className="text-content-400">当前容量 <span className="text-content-100 text-lg ml-2 font-bold">{stats.storageCapacity}</span></div>
                </div>
                <div className="text-2xl text-secondary-400 animate-pulse px-4">➜</div>
                <div className="space-y-3 text-right">
-                    <div className="text-primary-400 font-bold text-lg">{nextLevelConfig.qiMultiplier}x</div>
-                    <div className="text-primary-400 font-bold text-lg">{nextLevelConfig.maxTasks}</div>
+                    <div className="text-primary-400 font-bold text-lg">{nextLevel}</div>
+                    <div className="text-primary-400 font-bold text-lg">{stats.storageCapacity + CAVE_CONFIG.capacityPerLevel}</div>
                </div>
             </div>
 
@@ -58,15 +92,14 @@ export const CaveManager: React.FC = () => {
                    <Hammer size={12} /> 装修材料
                </div>
                <div className="space-y-3">
-                  <CostItem name="灵石" current={player.spiritStones} cost={nextLevelConfig.upgradeCost.stones} icon="💎" />
-                  {nextLevelConfig.upgradeCost.materials && Object.entries(nextLevelConfig.upgradeCost.materials).map(([matId, cost]) => {
-                    const mat = MATERIALS.find(m => m.id === matId);
-                    return <CostItem key={matId} name={mat?.name || matId} current={player.materials[matId] || 0} cost={cost} icon={mat?.icon || '📦'} />;
-                  })}
+                  <CostItem name="灵石" current={player.spiritStones} cost={upgradeCost.spiritStones} icon="💎" />
+                  {Object.entries(upgradeCost.materials).map(([matId, cost]) => (
+                    <CostItem key={matId} name={matId} current={0} cost={cost} icon={'📦'} />
+                  ))}
                </div>
             </div>
 
-            <Button onClick={upgradeCave} variant="secondary" size="lg" className="w-full" icon={<Hammer size={18} />}>开始装修工程</Button>
+            <Button onClick={() => upgrade.mutate()} variant="secondary" size="lg" className="w-full" icon={<Hammer size={18} />} loading={upgrade.isPending}>开始装修工程</Button>
           </>
         ) : (
           <div className="text-center py-12 text-content-400 bg-surface-800/50 rounded-2xl border border-dashed border-border-base">

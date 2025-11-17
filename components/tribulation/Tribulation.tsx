@@ -1,27 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import { generateTribulationQuiz, QuizQuestion } from '../../services/geminiService';
-import { useGameStore } from '../../store/useGameStore';
-import { getRankLabel } from '../../data/constants';
-import { Zap, Skull, CheckCircle, Briefcase } from 'lucide-react';
+'use client'
 
-export const Tribulation: React.FC = () => {
-  const { player, breakthroughSuccess, breakthroughFail } = useGameStore();
-  const [loading, setLoading] = useState(true);
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Zap, Skull, CheckCircle, Briefcase } from 'lucide-react';
+import { generateTribulationQuiz } from '@/lib/ai/generators/task-generator';
+import { startTribulation } from '@/features/tribulation/actions';
+import type { Player } from '@prisma/client';
+import type { QuizQuestion } from '@/lib/ai/types';
+
+interface Props {
+  player: Player
+}
+
+export const Tribulation: React.FC<Props> = ({ player }) => {
+  const queryClient = useQueryClient();
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<boolean | null>(null);
 
+  const { data, isLoading } = useQuery({
+    queryKey: ['tribulationQuiz', player.rank],
+    queryFn: () => generateTribulationQuiz(player.rank),
+  });
+
   useEffect(() => {
-    const load = async () => {
-      const rankLabel = getRankLabel(player.rank, player.level);
-      const qs = await generateTribulationQuiz(rankLabel);
-      setQuestions(qs);
-      setLoading(false);
-    };
-    load();
-  }, [player.rank, player.level]);
+    if (data) {
+      setQuestions(data);
+    }
+  }, [data]);
+
+  const tribulation = useMutation({
+    mutationFn: (success: boolean) => startTribulation({ playerId: player.id, preparation: { success } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['player', player.id] });
+      queryClient.invalidateQueries({ queryKey: ['realmInfo', player.id] });
+    },
+  });
 
   const handleAnswer = (idx: number) => {
     const isCorrect = idx === questions[currentQ].correctIndex;
@@ -38,9 +54,9 @@ export const Tribulation: React.FC = () => {
     }, 1000);
   };
 
-  const passed = score >= 2; 
+  const passed = score >= 2;
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface-950/90 backdrop-blur-sm text-primary-500">
         <Zap size={64} className="animate-bounce mb-4" />
@@ -61,7 +77,7 @@ export const Tribulation: React.FC = () => {
               </div>
               <h2 className="text-4xl font-xianxia text-primary-500 mb-3">晋升成功</h2>
               <p className="text-content-400 mb-8">恭喜通过绩效考核，大境界突破，薪水(灵气上限)增加！</p>
-              <button onClick={breakthroughSuccess} className="w-full py-4 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold shadow-lg shadow-primary-600/30">
+              <button onClick={() => tribulation.mutate(true)} className="w-full py-4 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold shadow-lg shadow-primary-600/30">
                 办理入职/晋升手续
               </button>
             </>
@@ -72,7 +88,7 @@ export const Tribulation: React.FC = () => {
               </div>
               <h2 className="text-4xl font-xianxia text-danger-500 mb-3">考核失败</h2>
               <p className="text-content-400 mb-8">不仅没涨薪，还背了P0事故锅...扣除半年绩效(修为)。</p>
-              <button onClick={breakthroughFail} className="w-full py-4 bg-danger-600 hover:bg-danger-500 text-white rounded-xl font-bold shadow-lg shadow-danger-600/30">
+              <button onClick={() => tribulation.mutate(false)} className="w-full py-4 bg-danger-600 hover:bg-danger-500 text-white rounded-xl font-bold shadow-lg shadow-danger-600/30">
                 写检讨书 (损失修为)
               </button>
             </>
@@ -103,11 +119,11 @@ export const Tribulation: React.FC = () => {
         {/* Question */}
         <div className="p-8">
           <h3 className="text-xl font-serif text-content-100 mb-8 leading-relaxed font-bold">
-            {q.question}
+            {q?.question}
           </h3>
 
           <div className="space-y-3">
-            {q.options.map((opt, idx) => {
+            {q?.options.map((opt, idx) => {
               let btnClass = "bg-surface-700 hover:bg-surface-600 border-transparent text-content-200";
               if (feedback !== null) {
                  if (idx === q.correctIndex) btnClass = "bg-primary-600/20 border-primary-500 text-primary-500";

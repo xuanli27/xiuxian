@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
-import { useGameStore } from '../../store/useGameStore';
-import { Crown } from 'lucide-react';
+'use client'
 
-export const IdentityCard: React.FC = () => {
-  const { player } = useGameStore();
+import React, { useState } from 'react';
+import { Crown } from 'lucide-react';
+import type { Player } from '@prisma/client';
+
+interface Props {
+  player: Player
+}
+
+export const IdentityCard: React.FC<Props> = ({ player }) => {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {

@@ -1,17 +1,49 @@
+'use client'
+
 import React, { useState } from 'react';
-import { useGameStore } from '../../store/useGameStore';
-import { ALL_ITEMS, MATERIALS } from '../../data/constants';
-import { EquipmentPanel } from './EquipmentPanel';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PackageOpen, Zap, ShieldMinus, MoveUp, Backpack } from 'lucide-react';
 import { Button, PageHeader } from '../ui';
 import clsx from 'clsx';
+import { EquipmentPanel } from './EquipmentPanel';
+import { getPlayerInventory } from '@/features/inventory/queries';
+import { useItem, equipItem } from '@/features/inventory/actions';
+import type { Player } from '@prisma/client';
+import type { InventoryItem, Item } from '@/features/inventory/types';
 
-export const Inventory: React.FC = () => {
-  const { player, useItem, equipItem } = useGameStore();
+interface Props {
+  initialItems: InventoryItem[]
+  player: Player
+}
+
+export const Inventory: React.FC<Props> = ({ initialItems, player }) => {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<'ITEMS' | 'MATS'>('ITEMS');
-  
-  const ownedItems = ALL_ITEMS.filter(item => (player.inventory[item.id] || 0) > 0);
-  const ownedMats = MATERIALS.filter(mat => (player.materials[mat.id] || 0) > 0);
+
+  const { data: items, isLoading } = useQuery({
+    queryKey: ['inventory', player.id],
+    queryFn: () => getPlayerInventory(player.id),
+    initialData: initialItems,
+  });
+
+  const use = useMutation({
+    mutationFn: (itemId: string) => useItem({ itemId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory', player.id] });
+      queryClient.invalidateQueries({ queryKey: ['player', player.id] });
+    },
+  });
+
+  const equip = useMutation({
+    mutationFn: (item: Item) => equipItem({ itemId: item.id, slot: item.slot! }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory', player.id] });
+      queryClient.invalidateQueries({ queryKey: ['player', player.id] });
+    },
+  });
+
+  const ownedItems = items?.filter(item => item.item.type !== 'MATERIAL');
+  const ownedMats = items?.filter(item => item.item.type === 'MATERIAL');
 
   return (
     <div className="pb-24 min-h-screen">
@@ -30,11 +62,10 @@ export const Inventory: React.FC = () => {
 
       <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {tab === 'ITEMS' ? (
-            ownedItems.length === 0 ? <EmptyState msg="道具空空如也，去功德阁看看？" /> : (
+            ownedItems?.length === 0 ? <EmptyState msg="道具空空如也，去功德阁看看？" /> : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {ownedItems.map(item => {
-                const count = player.inventory[item.id];
-                const isEquip = item.type === 'ARTIFACT';
+                {ownedItems?.map(({ item, quantity }) => {
+                const isEquip = item.type === 'EQUIPMENT';
                 
                 return (
                     <div key={item.id} className="bg-surface-800/60 backdrop-blur-sm rounded-2xl p-4 border border-border-base flex gap-4 group hover:border-primary-500/30 transition-all hover:shadow-lg">
@@ -47,14 +78,14 @@ export const Inventory: React.FC = () => {
                         <div className="flex-1">
                             <div className="flex justify-between items-center">
                                 <h3 className="font-bold text-content-100">{item.name}</h3>
-                                <span className="text-xs font-mono bg-surface-900 px-2 py-0.5 rounded text-content-400">x{count}</span>
+                                <span className="text-xs font-mono bg-surface-900 px-2 py-0.5 rounded text-content-400">x{quantity}</span>
                             </div>
                             <p className="text-xs text-content-400 mt-1 mb-3 h-8 leading-snug line-clamp-2 opacity-80">{item.description}</p>
                             
-                            {isEquip && item.bonus && (
+                            {isEquip && item.stats && (
                                 <div className="flex gap-2 mb-3 text-[10px] font-mono font-bold text-secondary-400">
-                                    {item.bonus.qiMultiplier && <span className="flex items-center gap-1 bg-secondary-900/20 px-1.5 py-0.5 rounded border border-secondary-500/20"><Zap size={10}/> +{(item.bonus.qiMultiplier * 100).toFixed(0)}%</span>}
-                                    {item.bonus.demonReduction && <span className="flex items-center gap-1 bg-secondary-900/20 px-1.5 py-0.5 rounded border border-secondary-500/20"><ShieldMinus size={10}/> -{(item.bonus.demonReduction * 100).toFixed(0)}%</span>}
+                                    {item.stats.attack && <span className="flex items-center gap-1 bg-secondary-900/20 px-1.5 py-0.5 rounded border border-secondary-500/20"><Zap size={10}/> +{item.stats.attack}</span>}
+                                    {item.stats.defense && <span className="flex items-center gap-1 bg-secondary-900/20 px-1.5 py-0.5 rounded border border-secondary-500/20"><ShieldMinus size={10}/> +{item.stats.defense}</span>}
                                 </div>
                             )}
 
@@ -62,7 +93,7 @@ export const Inventory: React.FC = () => {
                                 size="sm" 
                                 variant={isEquip ? "secondary" : "ghost"} 
                                 className={clsx("w-full", !isEquip && "bg-surface-700 hover:bg-surface-600")}
-                                onClick={() => isEquip ? equipItem(item.id) : useItem(item.id)}
+                                onClick={() => isEquip ? equip.mutate(item) : use.mutate(item.id)}
                                 icon={isEquip ? <MoveUp size={14} /> : undefined}
                             >
                                 {isEquip ? "装备" : "使用"}
@@ -74,13 +105,13 @@ export const Inventory: React.FC = () => {
             </div>
             )
         ) : (
-            ownedMats.length === 0 ? <EmptyState msg="暂无炼器材料，快去接需求吧！" /> : (
+            ownedMats?.length === 0 ? <EmptyState msg="暂无炼器材料，快去接需求吧！" /> : (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                {ownedMats.map(mat => (
-                <div key={mat.id} className="bg-surface-800 p-4 rounded-2xl border border-border-base text-center hover:-translate-y-1 transition-transform shadow-sm">
-                    <div className="text-4xl mb-2 filter drop-shadow-md">{mat.icon}</div>
-                    <div className="text-sm font-bold truncate text-content-200">{mat.name}</div>
-                    <div className="text-xs text-content-400 mt-1 font-mono">QTY: {player.materials[mat.id]}</div>
+                {ownedMats?.map(({ item, quantity }) => (
+                <div key={item.id} className="bg-surface-800 p-4 rounded-2xl border border-border-base text-center hover:-translate-y-1 transition-transform shadow-sm">
+                    <div className="text-4xl mb-2 filter drop-shadow-md">{item.icon}</div>
+                    <div className="text-sm font-bold truncate text-content-200">{item.name}</div>
+                    <div className="text-xs text-content-400 mt-1 font-mono">QTY: {quantity}</div>
                 </div>
                 ))}
             </div>
