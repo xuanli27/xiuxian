@@ -2,7 +2,6 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { Task } from "../types";
 
 // Initialize Gemini Client
-// Note: process.env.API_KEY is injected by the environment.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const MODEL_FLASH = 'gemini-2.5-flash';
@@ -13,10 +12,10 @@ export const generateSpiritRootFeedback = async (chaosScore: number): Promise<st
       User just drew a spirit root symbol. 
       Chaos Score (0-100, higher is messier): ${chaosScore}.
       
-      Act as a sarcastic Xianxia elder. 
-      If score < 20: Praise their discipline but call it boring.
-      If score > 80: Mock their chaotic drawing as "Abstract Daoism".
-      Otherwise: Give a lukewarm assessment.
+      Act as a sarcastic HR of the "Xianyu Sect" (Salted Fish Sect). 
+      If score < 20: Praise their ability to follow rules, but call them a "Corporate Slave".
+      If score > 80: Praise their chaotic energy as "Upper Management Material".
+      Otherwise: Call them "Mediocre Middleware".
       Keep it under 30 words. Language: Chinese (Simplified).
     `;
 
@@ -24,7 +23,7 @@ export const generateSpiritRootFeedback = async (chaosScore: number): Promise<st
       model: MODEL_FLASH,
       contents: prompt,
     });
-    return response.text || "灵根晦涩难明……";
+    return response.text || "资质平平，适合做个螺丝钉。";
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "天机不可泄露 (API Error)";
@@ -36,10 +35,10 @@ export const generateOfflineSummary = async (hours: number, rank: string, demon:
     const prompt = `
       Player was offline for ${hours.toFixed(1)} hours.
       Rank: ${rank}.
-      Inner Demon Level: ${demon}%.
+      Stress/Inner Demon Level: ${demon}%.
       
-      Write a short, humorous cultivation log (max 100 words).
-      Include 1 random "slacking off" event (e.g., sleeping, eating hotpot, watching clouds).
+      Write a short cultivation log (max 100 words) tailored to a "Slacking Off Cultivator" in a corporate sect.
+      Events should be like: "Spent 3 hours in the toilet pretending to meditate", "Drank 5 cups of bubble tea elixir".
       Language: Chinese (Simplified).
     `;
     
@@ -47,7 +46,7 @@ export const generateOfflineSummary = async (hours: number, rank: string, demon:
       model: MODEL_FLASH,
       contents: prompt,
     });
-    return response.text || "闭关期间，似乎做了一个关于咸鱼的长梦……";
+    return response.text || "闭关期间，似乎做了一个关于带薪拉屎的长梦……";
   } catch (error) {
     return "闭关结束，神清气爽。";
   }
@@ -62,13 +61,20 @@ export interface QuizQuestion {
 export const generateTribulationQuiz = async (rank: string): Promise<QuizQuestion[]> => {
   try {
     const prompt = `
-      Generate 3 multiple choice questions for a "Heavenly Tribulation" exam for a cultivator at ${rank} rank.
-      The questions should be a mix of:
-      1. Absurd ethical dilemmas in a cultivation world.
-      2. Modern office/programmer jokes disguised as cultivation lore.
-      3. Traditional Chinese mythology.
+      Generate 3 multiple choice questions for a "Performance Review" (Heavenly Tribulation) for a cultivator at ${rank} rank in the "Xianyu Sect".
       
-      Language: Chinese (Simplified). THIS IS CRITICAL. ALL OUTPUT MUST BE CHINESE.
+      THEME: Workplace survival, slacking off (moyu), dealing with bosses/clients, but wrapped in Xianxia terms.
+      Strictly use Chinese (Simplified).
+      
+      Questions MUST be about:
+      - Hiding windows when boss comes.
+      - Excuses for being late/missing deadlines.
+      - Dealing with unreasonable demands.
+      - Office snack distribution.
+      
+      Examples: 
+      - "The Sect Master (Boss) walks by. You are watching videos. What do you do?" -> "Cast 'Alt-Tab' Instant Shift Technique".
+      - "Client wants to change requirements for the 10th time." -> "Activate 'Passive Aggressive' shield".
       
       Return valid JSON only.
       Schema: Array of objects with 'question' (string), 'options' (string array size 4), 'correctIndex' (0-3).
@@ -101,22 +107,21 @@ export const generateTribulationQuiz = async (rank: string): Promise<QuizQuestio
     return JSON.parse(text) as QuizQuestion[];
   } catch (error) {
     console.error("Quiz Generation Error", error);
-    // Fallback questions
     return [
       {
-        question: "遇到心魔入侵，最好的处理方式是？",
-        options: ["立刻斩杀", "与之讲道理", "邀请它一起摸鱼", "重启电脑"],
-        correctIndex: 2
+        question: "当宗主（老板）经过你身后时，你正在看小说，此时应施展什么神通？",
+        options: ["Alt-Tab 瞬移术", "黑屏隐身决", "强行解释大道", "邀请宗主一起看"],
+        correctIndex: 0
       },
       {
-        question: "‘404 Not Found’ 在修仙界对应什么境界？",
-        options: ["炼虚合道", "走火入魔", "丹田破碎", "虚无之境"],
-        correctIndex: 3
+        question: "‘这个需求很简单，怎么实现我不管’ 是哪种心魔？",
+        options: ["产品经理之怒", "甲方噬魂咒", "技术债", "无论如何都得加钱"],
+        correctIndex: 1
       },
        {
-        question: "道友请留步！下一句通常是？",
-        options: ["请吃饭", "送法宝", "要倒霉了", "交个朋友"],
-        correctIndex: 2
+        question: "面对周五下午5点的紧急会议（天劫），最佳应对策略是？",
+        options: ["立刻接受挑战", "施展‘肚子疼’遁术", "断网闭关", "带薪加班"],
+        correctIndex: 1
       }
     ];
   }
@@ -125,13 +130,17 @@ export const generateTribulationQuiz = async (rank: string): Promise<QuizQuestio
 export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
   try {
     const prompt = `
-      Generate 4 funny "slacking off" tasks for a cultivator at ${rank} rank.
-      Themes: Office life mixed with cultivation, fishing (moyu), hiding from bosses/elders.
+      Generate 4 daily tasks for the "Xianyu Sect" (Salted Fish Sect).
+      Rank: ${rank}.
+      
+      Task types must be strictly about:
+      1. Wasting time at work.
+      2. Getting free food/drinks.
+      3. Avoiding responsibilities.
+      4. Office politics (funny side).
       
       Language: Chinese (Simplified).
-      
       Return valid JSON only.
-      Schema: Array of objects.
     `;
 
     const responseSchema: Schema = {
@@ -147,6 +156,7 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
              type: Type.OBJECT,
              properties: {
                  qi: { type: Type.INTEGER },
+                 contribution: { type: Type.INTEGER },
                  item: { type: Type.STRING }
              }
           },
@@ -178,23 +188,22 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
     }));
 
   } catch (error) {
-      console.error("Task Gen Error", error);
       return [
           {
               id: 't1',
               title: '带薪如厕',
-              description: '躲在茅房（厕所）修炼五谷轮回之术，实则刷玉简（手机）。',
+              description: '在五谷轮回之所刷手机，腿不麻不出来。',
               type: 'GAME',
-              reward: { qi: 50, item: '劣质手纸' },
+              reward: { qi: 50, contribution: 10, item: '劣质手纸' },
               duration: 5,
               completed: false
           },
           {
               id: 't2',
-              title: '神游太虚',
-              description: '在掌门（老板）眼皮底下睁眼睡觉。',
+              title: '茶水间论道',
+              description: '聚集在茶水间八卦，消耗公司咖啡豆。',
               type: 'LINK',
-              reward: { qi: 100 },
+              reward: { qi: 100, contribution: 20 },
               duration: 10,
               completed: false
           }

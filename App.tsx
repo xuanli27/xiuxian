@@ -1,140 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  GameView, Rank, SpiritRootType, 
-  PlayerStats, Task, RANK_THRESHOLDS 
-} from './types';
+import React, { useEffect } from 'react';
+import { GameView, Rank, SpiritRootType } from './types';
+import { useGameStore } from './store/useGameStore';
 import { SpiritRootCanvas, MindPathQuiz } from './components/Onboarding';
 import { Dashboard } from './components/Dashboard';
 import { Tribulation } from './components/Tribulation';
 import { TaskBoard } from './components/TaskBoard';
-import { generateOfflineSummary } from './services/geminiService';
-import { ScrollText, User, X, Home, ListTodo, Backpack } from 'lucide-react';
-
-const INITIAL_STATS: PlayerStats = {
-  name: '道友',
-  avatar: '',
-  rank: Rank.MORTAL,
-  level: 1,
-  qi: 0,
-  maxQi: 100,
-  spiritRoot: SpiritRootType.WASTE,
-  mindState: '凡人',
-  innerDemon: 0,
-  coins: 0,
-  location: '新手村',
-  history: [],
-  createTime: Date.now(),
-  lastLoginTime: Date.now()
-};
-
-const OFFLINE_QI_RATE = 0.5; // Qi per second offline
-const ONLINE_QI_RATE = 2;   // Qi per second online
+import { SectHall } from './components/SectHall';
+import { Inventory } from './components/Inventory';
+import { ScrollText, User, X, Home, ListTodo, Backpack, Crown } from 'lucide-react';
 
 export default function App() {
-  const [view, setView] = useState<GameView>(GameView.ONBOARDING_SPIRIT);
-  const [player, setPlayer] = useState<PlayerStats>(INITIAL_STATS);
-  const [tasks, setTasks] = useState<Task[]>([]); // Manage tasks here
-  const [offlineReport, setOfflineReport] = useState<string | null>(null);
+  const { 
+    view, player, offlineReport, 
+    setView, setPlayer, tick, clearOfflineReport, initializeGame 
+  } = useGameStore();
   
-  // Load Game
+  // Init Logic
   useEffect(() => {
-    const saved = localStorage.getItem('xiuxian_save_v1');
-    if (saved) {
-      const parsed: PlayerStats = JSON.parse(saved);
-      // Offline Calculation
-      const now = Date.now();
-      const diffSeconds = (now - parsed.lastLoginTime) / 1000;
-      
-      if (diffSeconds > 60) { // More than 1 minute offline
-        const gainedQi = diffSeconds * OFFLINE_QI_RATE;
-        parsed.qi += gainedQi;
-        
-        // Trigger offline report generation
-        generateOfflineSummary(diffSeconds / 3600, parsed.rank, parsed.innerDemon).then(summary => {
-          setOfflineReport(`离线 ${Math.floor(diffSeconds/60)} 分钟。\n获得灵气 ${Math.floor(gainedQi)}。\n\n${summary}`);
-        });
-      }
-      
-      setPlayer({ ...parsed, lastLoginTime: now });
-      setView(GameView.DASHBOARD);
-    }
+    initializeGame();
   }, []);
 
-  // Auto-Save Loop & Passive Gain
+  // Game Loop
   useEffect(() => {
-    const timer = setInterval(() => {
-      setPlayer(p => {
-        // Only gain passive Qi if not in onboarding
-        if (view === GameView.ONBOARDING_MIND || view === GameView.ONBOARDING_SPIRIT) return p;
-        
-        const newQi = p.qi + (ONLINE_QI_RATE / 10); // Tick every 100ms
-        const newState = { ...p, qi: newQi, lastLoginTime: Date.now() };
-        
-        localStorage.setItem('xiuxian_save_v1', JSON.stringify(newState));
-        return newState;
-      });
-    }, 100);
-
+    const timer = setInterval(() => tick(), 100);
     return () => clearInterval(timer);
-  }, [view]);
+  }, []);
 
   const handleSpiritComplete = (root: SpiritRootType, avatar: string) => {
-    setPlayer(p => ({ ...p, spiritRoot: root, avatar }));
+    setPlayer({ spiritRoot: root, avatar });
     setView(GameView.ONBOARDING_MIND);
   };
 
   const handleMindComplete = (mind: string) => {
-    setPlayer(p => ({ ...p, mindState: mind }));
-    // Finish setup
-    const finalState = { ...player, mindState: mind, rank: Rank.QI_REFINING };
-    setPlayer(finalState);
-    localStorage.setItem('xiuxian_save_v1', JSON.stringify(finalState));
+    setPlayer({ mindState: mind, rank: Rank.MORTAL });
     setView(GameView.DASHBOARD);
-  };
-
-  const handleQiClick = () => {
-    setPlayer(p => ({ ...p, qi: p.qi + 10 })); // Active click bonus
-  };
-
-  const handleBreakthroughSuccess = () => {
-    setPlayer(p => {
-      const ranks = Object.values(Rank);
-      const currentIndex = ranks.indexOf(p.rank);
-      const nextRank = ranks[currentIndex + 1] as Rank || Rank.IMMORTAL;
-      
-      return {
-        ...p,
-        rank: nextRank,
-        qi: 0, // Reset Qi for next rank
-        level: 1,
-        maxQi: RANK_THRESHOLDS[nextRank] || Infinity
-      };
-    });
-    setView(GameView.DASHBOARD);
-  };
-
-  const handleBreakthroughFail = () => {
-    setPlayer(p => ({
-      ...p,
-      qi: Math.floor(p.qi * 0.5), // Lose half Qi
-      innerDemon: Math.min(100, p.innerDemon + 20)
-    }));
-    setView(GameView.DASHBOARD);
-  };
-
-  const handleTaskComplete = (completedTask: Task) => {
-    setPlayer(p => ({
-      ...p,
-      qi: p.qi + completedTask.reward.qi,
-      // Add item logic here if inventory existed
-    }));
-    
-    // Mark task as completed locally
-    setTasks(prev => prev.map(t => t.id === completedTask.id ? { ...t, completed: true } : t));
   };
 
   // --- Render ---
-
   const renderView = () => {
     switch (view) {
       case GameView.ONBOARDING_SPIRIT:
@@ -142,29 +44,17 @@ export default function App() {
       case GameView.ONBOARDING_MIND:
         return <MindPathQuiz onComplete={handleMindComplete} />;
       case GameView.TRIBULATION:
-        return (
-          <Tribulation 
-            rank={player.rank} 
-            onSuccess={handleBreakthroughSuccess} 
-            onFail={handleBreakthroughFail}
-            onClose={() => setView(GameView.DASHBOARD)}
-          />
-        );
+        return <Tribulation />;
       case GameView.TASKS:
-        return (
-          <TaskBoard 
-            rank={player.rank}
-            tasks={tasks}
-            setTasks={setTasks}
-            onCompleteTask={handleTaskComplete}
-          />
-        );
+        return <TaskBoard />;
+      case GameView.SECT:
+        return <SectHall />;
+      case GameView.INVENTORY:
+        return <Inventory />;
       case GameView.DASHBOARD:
       default:
         return (
           <Dashboard 
-            stats={player} 
-            onClickQi={handleQiClick} 
             onBreakthrough={() => setView(GameView.TRIBULATION)}
           />
         );
@@ -179,12 +69,13 @@ export default function App() {
       {showNav && (
         <nav className="fixed top-0 w-full z-40 bg-slate-900/80 backdrop-blur border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-lg">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 overflow-hidden border border-emerald-400">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 overflow-hidden border border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]">
                {player.avatar ? <img src={player.avatar} alt="avatar" className="w-full h-full object-cover" /> : <User size={20} className="m-1.5" />}
             </div>
-            <span className="font-xianxia text-xl text-emerald-100">摸鱼修仙录</span>
+            <span className="font-xianxia text-xl text-emerald-100">仙欲宗</span>
           </div>
-          <div className="flex gap-3 text-xs text-slate-400">
+          <div className="flex gap-3 text-xs text-slate-400 items-center">
+             <span className="text-amber-400 font-bold">{player.sectRank}</span>
             <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">{player.spiritRoot}</span>
           </div>
         </nav>
@@ -197,17 +88,23 @@ export default function App() {
 
       {/* Bottom Navigation Bar */}
       {showNav && (
-        <div className="fixed bottom-0 left-0 w-full bg-slate-900 border-t border-slate-800 z-40 pb-safe">
+        <div className="fixed bottom-0 left-0 w-full bg-slate-900/90 backdrop-blur border-t border-slate-800 z-40 pb-safe">
           <div className="flex justify-around items-center h-16">
             <NavButton 
               icon={<Home size={24} />} 
-              label="洞府" 
+              label="工位" 
               active={view === GameView.DASHBOARD} 
               onClick={() => setView(GameView.DASHBOARD)} 
             />
             <NavButton 
+              icon={<Crown size={24} />} 
+              label="宗门" 
+              active={view === GameView.SECT} 
+              onClick={() => setView(GameView.SECT)} 
+            />
+            <NavButton 
               icon={<ListTodo size={24} />} 
-              label="任务" 
+              label="需求" 
               active={view === GameView.TASKS} 
               onClick={() => setView(GameView.TASKS)} 
             />
@@ -223,26 +120,26 @@ export default function App() {
 
       {/* Offline Modal */}
       {offlineReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6 backdrop-blur-sm">
-          <div className="bg-slate-800 border border-emerald-600 rounded-lg max-w-md w-full p-6 shadow-2xl relative animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-slate-800 border border-emerald-600 rounded-xl max-w-md w-full p-6 shadow-2xl relative">
             <button 
-              onClick={() => setOfflineReport(null)} 
+              onClick={clearOfflineReport} 
               className="absolute top-4 right-4 text-slate-400 hover:text-white"
             >
               <X size={20} />
             </button>
             <div className="flex items-center gap-3 mb-4 text-emerald-400">
               <ScrollText size={24} />
-              <h2 className="font-xianxia text-2xl">闭关日志</h2>
+              <h2 className="font-xianxia text-2xl">摸鱼周报</h2>
             </div>
-            <p className="whitespace-pre-line text-slate-300 leading-relaxed">
+            <p className="whitespace-pre-line text-slate-300 leading-relaxed text-sm">
               {offlineReport}
             </p>
             <button 
-               onClick={() => setOfflineReport(null)}
-               className="mt-6 w-full py-2 bg-slate-700 hover:bg-slate-600 rounded transition"
+               onClick={clearOfflineReport}
+               className="mt-6 w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold transition shadow-lg shadow-emerald-900/50"
             >
-              出关
+              继续搬砖
             </button>
           </div>
         </div>
@@ -254,9 +151,10 @@ export default function App() {
 const NavButton = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) => (
   <button 
     onClick={onClick}
-    className={`flex flex-col items-center justify-center w-full h-full transition-colors ${active ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}
+    className={`flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative ${active ? 'text-emerald-400 -translate-y-1' : 'text-slate-500 hover:text-slate-300'}`}
   >
     {icon}
     <span className="text-xs mt-1 font-bold">{label}</span>
+    {active && <span className="absolute bottom-1 w-1 h-1 bg-emerald-400 rounded-full" />}
   </button>
 );
