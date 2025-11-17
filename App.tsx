@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { GameView, Rank, SpiritRootType, Theme } from './types';
 import { useGameStore } from './store/useGameStore';
@@ -7,7 +8,8 @@ import { Tribulation } from './components/Tribulation';
 import { TaskBoard } from './components/TaskBoard';
 import { SectHall } from './components/SectHall';
 import { Inventory } from './components/Inventory';
-import { ScrollText, User, X, Home, ListTodo, Backpack, Crown, Moon, Sun, Cpu } from 'lucide-react';
+import { CaveAbode } from './components/CaveAbode';
+import { ScrollText, User, X, Home, ListTodo, Backpack, Crown, Moon, Sun, Cpu, Armchair } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function App() {
@@ -58,6 +60,8 @@ export default function App() {
         return <SectHall />;
       case GameView.INVENTORY:
         return <Inventory />;
+      case GameView.CAVE:
+        return <CaveAbode />;
       case GameView.DASHBOARD:
       default:
         return (
@@ -71,7 +75,17 @@ export default function App() {
   const showNav = view !== GameView.ONBOARDING_SPIRIT && view !== GameView.ONBOARDING_MIND && view !== GameView.TRIBULATION;
 
   return (
-    <div className="min-h-screen bg-surface-950 text-content-100 font-serif selection:bg-primary-500/30 pb-20 transition-colors duration-500">
+    <div className="min-h-screen bg-surface-950 text-content-100 font-serif selection:bg-primary-500/30 pb-20 transition-colors duration-500 relative overflow-hidden">
+      
+      {/* Inner Demon Vignette Effect */}
+      <div 
+        className="pointer-events-none fixed inset-0 z-50 transition-opacity duration-1000 mix-blend-multiply"
+        style={{ 
+           background: `radial-gradient(circle at center, transparent 60%, #ef4444)`,
+           opacity: Math.max(0, (player.innerDemon - 50) / 50) * 0.4
+        }}
+      />
+
       {/* Top Navbar */}
       {showNav && (
         <nav className="fixed top-0 w-full z-40 bg-surface-900/80 backdrop-blur-md border-b border-border-base px-4 py-3 flex justify-between items-center shadow-md">
@@ -114,16 +128,22 @@ export default function App() {
               onClick={() => setView(GameView.DASHBOARD)} 
             />
             <NavButton 
-              icon={<Crown size={24} />} 
-              label="宗门" 
-              active={view === GameView.SECT} 
-              onClick={() => setView(GameView.SECT)} 
+              icon={<Armchair size={24} />} 
+              label="洞府" 
+              active={view === GameView.CAVE} 
+              onClick={() => setView(GameView.CAVE)} 
             />
             <NavButton 
               icon={<ListTodo size={24} />} 
               label="需求" 
               active={view === GameView.TASKS} 
               onClick={() => setView(GameView.TASKS)} 
+            />
+            <NavButton 
+              icon={<Crown size={24} />} 
+              label="宗门" 
+              active={view === GameView.SECT} 
+              onClick={() => setView(GameView.SECT)} 
             />
              <NavButton 
               icon={<Backpack size={24} />} 

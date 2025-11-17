@@ -1,7 +1,8 @@
+
 import React, { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { RANK_THRESHOLDS } from '../types';
-import { Zap, Database, ShieldAlert, Coffee, Coins } from 'lucide-react';
+import { RANK_THRESHOLDS, CAVE_LEVELS } from '../types';
+import { Zap, Database, ShieldAlert, Coffee, Coins, Home } from 'lucide-react';
 import clsx from 'clsx';
 
 interface Props {
@@ -13,6 +14,8 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
+  const currentCave = CAVE_LEVELS.find(c => c.level === player.caveLevel) || CAVE_LEVELS[0];
+
   // Qi Particle System (Updated for theme colors)
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
@@ -20,13 +23,6 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Get theme colors from CSS vars
-    const styles = getComputedStyle(document.documentElement);
-    const primaryColor = styles.getPropertyValue('--accent-main').trim() || '#10B981';
-    
-    let animationId: number;
-    const particles: { x: number; y: number; vx: number; vy: number; life: number }[] = [];
-    
     const resize = () => {
         canvas.width = containerRef.current?.clientWidth || 300;
         canvas.height = containerRef.current?.clientHeight || 300;
@@ -36,11 +32,12 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
 
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
+    let animationId: number;
+    const particles: { x: number; y: number; life: number }[] = [];
 
     const render = () => {
-      // Use computed style for dynamic theme update
-      const currentStyles = getComputedStyle(document.documentElement);
-      const pColor = currentStyles.getPropertyValue('--accent-main').trim() || '#10B981';
+      const styles = getComputedStyle(document.documentElement);
+      const pColor = styles.getPropertyValue('--accent-main').trim() || '#10B981';
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
@@ -50,8 +47,6 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
         particles.push({
           x: centerX + Math.cos(angle) * r,
           y: centerY + Math.sin(angle) * r,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
           life: 1.0
         });
       }
@@ -78,7 +73,7 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
       }
       
       ctx.globalAlpha = 1;
-      ctx.shadowBlur = 30;
+      ctx.shadowBlur = 20;
       ctx.shadowColor = pColor;
       ctx.fillStyle = pColor;
       ctx.beginPath();
@@ -94,7 +89,7 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(animationId);
     };
-  }, [player.theme]); // Re-init on theme change
+  }, [player.theme]);
 
   const progress = Math.min(100, (player.qi / RANK_THRESHOLDS[player.rank]) * 100);
   const canBreakthrough = player.qi >= RANK_THRESHOLDS[player.rank];
@@ -104,9 +99,9 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
       {/* 3D Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 perspective-1000">
         <StatCard icon={<Database size={18} />} label="职位(境界)" value={player.rank} color="text-blue-400" delay={0} />
-        <StatCard icon={<ShieldAlert size={18} />} label="压力(心魔)" value={`${player.innerDemon}%`} color="text-danger-400" delay={100} />
-        <StatCard icon={<Coffee size={18} />} label="心性" value={player.mindState} color="text-secondary-400" delay={200} />
-        <StatCard icon={<Coins size={18} />} label="贡献" value={player.contribution} color="text-primary-400" delay={300} />
+        <StatCard icon={<ShieldAlert size={18} />} label="压力(心魔)" value={`${player.innerDemon}%`} color={player.innerDemon > 80 ? "text-red-500 animate-pulse" : "text-danger-400"} delay={100} />
+        <StatCard icon={<Coins size={18} />} label="灵石" value={player.spiritStones} color="text-secondary-400" delay={200} />
+        <StatCard icon={<Home size={18} />} label="洞府加成" value={`${currentCave.qiMultiplier}x`} color="text-primary-400" delay={300} />
       </div>
 
       {/* Main Cultivation Area */}
@@ -123,7 +118,7 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
                 <p className="text-primary-400/80 text-sm mt-2">点击汲取天地精华</p>
             </div>
              <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none">
-                 <span className="bg-surface-950/80 px-4 py-1 rounded-full text-sm text-primary-400 border border-primary-600/50 font-mono">
+                 <span className="bg-surface-900/80 px-4 py-1 rounded-full text-sm text-primary-400 border border-primary-600/50 font-mono">
                      Qi: {Math.floor(player.qi)}
                  </span>
              </div>
@@ -163,9 +158,12 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
                 {canBreakthrough ? "申请升职 (突破)" : "资历不足"}
             </button>
 
-            <div className="bg-surface-800/50 p-4 rounded-xl text-sm text-content-400 italic border border-border-base text-center">
-                "工作不突出，腰间盘突出。修仙不努力，万魂幡里做兄弟。"
-            </div>
+            {player.innerDemon > 50 && (
+              <div className="bg-danger-900/30 border border-danger-500/30 p-3 rounded-xl flex items-center gap-2 text-danger-400 text-sm animate-pulse">
+                 <ShieldAlert size={16} />
+                 <span>警告：心魔过重，修炼效率降低！请速去功德阁购买减压道具。</span>
+              </div>
+            )}
         </div>
       </div>
     </div>

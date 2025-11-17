@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Task } from "../types";
+import { Task, MATERIALS } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -129,18 +130,22 @@ export const generateTribulationQuiz = async (rank: string): Promise<QuizQuestio
 
 export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
   try {
+    // Simplified materials list string
+    const matNames = MATERIALS.map(m => m.id).join(', ');
+
     const prompt = `
-      Generate 4 daily tasks for the "Xianyu Sect" (Salted Fish Sect).
-      Rank: ${rank}.
+      Generate 4 daily tasks for "Xianyu Sect" (Moyu). Rank: ${rank}.
       
-      Task types must be strictly about:
-      1. Wasting time at work.
-      2. Getting free food/drinks.
-      3. Avoiding responsibilities.
-      4. Office politics (funny side).
+      Theme: Corporate Cultivation, Slacking off.
+      Types:
+      1. LINK: Visiting an external website (e.g. "Browse Tech News"). Must provide 'quiz'.
+      2. BATTLE: Arguing with NPC (e.g. "Bug Demon", "Toxic PM"). Must provide 'enemy'.
+      3. GAME: Simple clicker/wait.
+      
+      Reward: Qi (50-200), Contribution (10-50), Stones (10-100), Material (Optional ID from: ${matNames}).
       
       Language: Chinese (Simplified).
-      Return valid JSON only.
+      Return valid JSON.
     `;
 
     const responseSchema: Schema = {
@@ -157,13 +162,29 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
              properties: {
                  qi: { type: Type.INTEGER },
                  contribution: { type: Type.INTEGER },
-                 item: { type: Type.STRING }
+                 stones: { type: Type.INTEGER },
+                 materials: { 
+                   type: Type.ARRAY,
+                   items: {
+                     type: Type.OBJECT,
+                     properties: { id: { type: Type.STRING }, count: { type: Type.INTEGER } }
+                   }
+                 }
              }
           },
-          duration: { type: Type.INTEGER, description: "Duration in seconds, between 5 and 30" },
-          completed: { type: Type.BOOLEAN }
+          duration: { type: Type.INTEGER },
+          completed: { type: Type.BOOLEAN },
+          // Optional interactive data
+          quiz: {
+            type: Type.OBJECT,
+            properties: { question: {type:Type.STRING}, options:{type:Type.ARRAY, items:{type:Type.STRING}}, correctIndex:{type:Type.INTEGER} }
+          },
+          enemy: {
+            type: Type.OBJECT,
+            properties: { name: {type:Type.STRING}, title: {type:Type.STRING}, power: {type:Type.INTEGER}, avatar: {type:Type.STRING} }
+          }
         },
-        required: ["id", "title", "description", "type", "reward", "duration"]
+        required: ["title", "description", "type", "reward", "duration"]
       }
     };
 
@@ -180,33 +201,37 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
     if (!text) throw new Error("No text generated");
     const tasks = JSON.parse(text) as any[];
     
-    // Ensure IDs and default values
     return tasks.map((t, i) => ({
         ...t,
         id: `task-${Date.now()}-${i}`,
-        completed: false
+        completed: false,
+        // Fallback for missing quiz/enemy data if AI hallucinates structure
+        quiz: t.type === 'LINK' && !t.quiz ? { question: "摸鱼摸到了什么？", options: ["空气", "快乐", "知识", "焦虑"], correctIndex: 1 } : t.quiz,
+        enemy: t.type === 'BATTLE' && !t.enemy ? { name: "心魔幻影", title: "Lv.1 杂鱼", power: 100, avatar: "👻" } : t.enemy
     }));
 
   } catch (error) {
-      return [
-          {
-              id: 't1',
-              title: '带薪如厕',
-              description: '在五谷轮回之所刷手机，腿不麻不出来。',
-              type: 'GAME',
-              reward: { qi: 50, contribution: 10, item: '劣质手纸' },
-              duration: 5,
-              completed: false
-          },
-          {
-              id: 't2',
-              title: '茶水间论道',
-              description: '聚集在茶水间八卦，消耗公司咖啡豆。',
-              type: 'LINK',
-              reward: { qi: 100, contribution: 20 },
-              duration: 10,
-              completed: false
-          }
-      ];
+    console.error("Task Gen Error", error);
+    return [
+      {
+          id: 't1',
+          title: '带薪如厕',
+          description: '在五谷轮回之所刷手机，腿不麻不出来。',
+          type: 'GAME',
+          reward: { qi: 50, contribution: 10, stones: 20, materials: [{id: 'bug_shell', count: 1}] },
+          duration: 5,
+          completed: false
+      },
+      {
+          id: 't2',
+          title: '与产品经理论道',
+          description: '试图说服PM这个需求做不了。',
+          type: 'BATTLE',
+          reward: { qi: 100, contribution: 20, stones: 50 },
+          duration: 10,
+          completed: false,
+          enemy: { name: "P7产品经理", title: "需求制造者", power: 200, avatar: "👨‍💼" }
+      }
+    ];
   }
 };
