@@ -1,5 +1,6 @@
+
 import React, { useRef, useState, useEffect } from 'react';
-import { GameView, SpiritRootType } from '../types';
+import { GameView, SpiritRootType, Rank } from '../types';
 import { generateSpiritRootFeedback } from '../services/geminiService';
 import { Zap, Check, Eraser } from 'lucide-react';
 

@@ -1,8 +1,8 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { RANK_THRESHOLDS, CAVE_LEVELS } from '../types';
-import { Zap, Database, ShieldAlert, Coffee, Coins, Home } from 'lucide-react';
+import { RANK_CONFIG, CAVE_LEVELS, getRankLabel, getFullRankTitle } from '../types';
+import { Zap, Database, ShieldAlert, Coins, Home, ArrowUpCircle } from 'lucide-react';
 import clsx from 'clsx';
 
 interface Props {
@@ -10,11 +10,17 @@ interface Props {
 }
 
 export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
-  const { player, gainQi } = useGameStore();
+  const { player, gainQi, minorBreakthrough } = useGameStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const currentCave = CAVE_LEVELS.find(c => c.level === player.caveLevel) || CAVE_LEVELS[0];
+  const rankConfig = RANK_CONFIG[player.rank];
+  
+  // Logic: Is player ready for next level?
+  const canBreakthrough = player.qi >= player.maxQi;
+  // Logic: Is player at the Peak of current rank (needs Tribulation)?
+  const isMaxLevel = player.level >= rankConfig.maxLevel;
 
   // Qi Particle System (Updated for theme colors)
   useEffect(() => {
@@ -91,14 +97,14 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
     };
   }, [player.theme]);
 
-  const progress = Math.min(100, (player.qi / RANK_THRESHOLDS[player.rank]) * 100);
-  const canBreakthrough = player.qi >= RANK_THRESHOLDS[player.rank];
+  const progress = Math.min(100, (player.qi / player.maxQi) * 100);
+  const displayRank = getRankLabel(player.rank, player.level);
 
   return (
     <div className="p-4 w-full max-w-4xl mx-auto pb-24">
       {/* 3D Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 perspective-1000">
-        <StatCard icon={<Database size={18} />} label="职位(境界)" value={player.rank} color="text-blue-400" delay={0} />
+        <StatCard icon={<Database size={18} />} label="职位(境界)" value={displayRank} color="text-blue-400" delay={0} />
         <StatCard icon={<ShieldAlert size={18} />} label="压力(心魔)" value={`${player.innerDemon}%`} color={player.innerDemon > 80 ? "text-red-500 animate-pulse" : "text-danger-400"} delay={100} />
         <StatCard icon={<Coins size={18} />} label="灵石" value={player.spiritStones} color="text-secondary-400" delay={200} />
         <StatCard icon={<Home size={18} />} label="洞府加成" value={`${currentCave.qiMultiplier}x`} color="text-primary-400" delay={300} />
@@ -128,7 +134,7 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
         <div className="flex flex-col justify-center space-y-6">
             <div className="bg-surface-800 p-6 rounded-2xl border border-border-base shadow-lg">
                 <div className="flex justify-between mb-2 text-sm font-bold">
-                    <span className="text-content-400">绩效考核进度</span>
+                    <span className="text-content-400">{rankConfig.title}考核进度</span>
                     <span className="text-primary-400">{progress.toFixed(1)}%</span>
                 </div>
                 <div className="h-6 bg-surface-900 rounded-full overflow-hidden border border-border-base relative">
@@ -140,23 +146,41 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
                     </div>
                 </div>
                 <p className="text-xs text-content-400 mt-2 text-right font-mono">
-                    {Math.floor(player.qi)} / {RANK_THRESHOLDS[player.rank] === Infinity ? '∞' : RANK_THRESHOLDS[player.rank]}
+                    {Math.floor(player.qi)} / {player.maxQi === Infinity ? '∞' : player.maxQi}
                 </p>
             </div>
+            
+            {/* Action Button: Changes based on state */}
+            {isMaxLevel ? (
+                 <button
+                    disabled={!canBreakthrough}
+                    onClick={onBreakthrough}
+                    className={clsx(
+                    "w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all duration-300 transform",
+                    canBreakthrough 
+                        ? 'bg-danger-600 hover:bg-danger-500 hover:-translate-y-1 text-white shadow-lg shadow-danger-600/30 animate-[pulse_2s_infinite]' 
+                        : 'bg-surface-700 text-content-400 cursor-not-allowed border border-border-base'
+                    )}
+                >
+                    <Zap className={canBreakthrough ? "animate-pulse" : ""} />
+                    {canBreakthrough ? `渡劫 (晋升${RANK_CONFIG[player.rank].title})` : "灵气不足以渡劫"}
+                </button>
+            ) : (
+                <button
+                    disabled={!canBreakthrough}
+                    onClick={minorBreakthrough}
+                    className={clsx(
+                    "w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all duration-300 transform",
+                    canBreakthrough 
+                        ? 'bg-secondary-600 hover:bg-secondary-400 hover:-translate-y-1 text-white shadow-lg shadow-secondary-600/30' 
+                        : 'bg-surface-700 text-content-400 cursor-not-allowed border border-border-base'
+                    )}
+                >
+                    <ArrowUpCircle className={canBreakthrough ? "animate-bounce" : ""} />
+                    {canBreakthrough ? "小境界突破" : "积累中..."}
+                </button>
+            )}
 
-            <button
-                disabled={!canBreakthrough}
-                onClick={onBreakthrough}
-                className={clsx(
-                  "w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all duration-300 transform",
-                  canBreakthrough 
-                    ? 'bg-secondary-600 hover:bg-secondary-400 hover:-translate-y-1 text-white shadow-lg shadow-secondary-600/30 animate-[bounce_2s_infinite]' 
-                    : 'bg-surface-700 text-content-400 cursor-not-allowed border border-border-base'
-                )}
-            >
-                <Zap className={canBreakthrough ? "animate-pulse" : ""} />
-                {canBreakthrough ? "申请升职 (突破)" : "资历不足"}
-            </button>
 
             {player.innerDemon > 50 && (
               <div className="bg-danger-900/30 border border-danger-500/30 p-3 rounded-xl flex items-center gap-2 text-danger-400 text-sm animate-pulse">

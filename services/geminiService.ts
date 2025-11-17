@@ -31,11 +31,11 @@ export const generateSpiritRootFeedback = async (chaosScore: number): Promise<st
   }
 };
 
-export const generateOfflineSummary = async (hours: number, rank: string, demon: number): Promise<string> => {
+export const generateOfflineSummary = async (hours: number, rankLabel: string, demon: number): Promise<string> => {
   try {
     const prompt = `
       Player was offline for ${hours.toFixed(1)} hours.
-      Rank: ${rank}.
+      Rank/Realm: ${rankLabel}.
       Stress/Inner Demon Level: ${demon}%.
       
       Write a short cultivation log (max 100 words) tailored to a "Slacking Off Cultivator" in a corporate sect.
@@ -59,10 +59,10 @@ export interface QuizQuestion {
   correctIndex: number;
 }
 
-export const generateTribulationQuiz = async (rank: string): Promise<QuizQuestion[]> => {
+export const generateTribulationQuiz = async (rankLabel: string): Promise<QuizQuestion[]> => {
   try {
     const prompt = `
-      Generate 3 multiple choice questions for a "Performance Review" (Heavenly Tribulation) for a cultivator at ${rank} rank in the "Xianyu Sect".
+      Generate 3 multiple choice questions for a "Performance Review" (Heavenly Tribulation) for a cultivator at ${rankLabel} rank in the "Xianyu Sect".
       
       THEME: Workplace survival, slacking off (moyu), dealing with bosses/clients, but wrapped in Xianxia terms.
       Strictly use Chinese (Simplified).

@@ -13,16 +13,61 @@ export enum GameView {
 
 export type Theme = 'dark' | 'ink' | 'cyber';
 
+// Refactored Rank to be keys, separated from display strings
 export enum Rank {
-  MORTAL = '试用期(凡人)',
-  QI_REFINING = '练气实习生',
-  FOUNDATION = '筑基专员',
-  GOLDEN_CORE = '金丹组长',
-  NASCENT_SOUL = '元婴经理',
-  SPIRIT_SEVERING = '化神总监',
-  VOID_REFINING = '炼虚VP',
-  MAHAYANA = '大乘合伙人',
-  IMMORTAL = '财务自由(飞升)'
+  MORTAL = 'MORTAL',
+  QI_REFINING = 'QI_REFINING',
+  FOUNDATION = 'FOUNDATION',
+  GOLDEN_CORE = 'GOLDEN_CORE',
+  NASCENT_SOUL = 'NASCENT_SOUL',
+  SPIRIT_SEVERING = 'SPIRIT_SEVERING',
+  VOID_REFINING = 'VOID_REFINING',
+  MAHAYANA = 'MAHAYANA',
+  IMMORTAL = 'IMMORTAL'
+}
+
+export interface RankInfo {
+  id: Rank;
+  name: string; // Xianxia Name
+  title: string; // Corporate Title
+  maxLevel: number; // 9 for Qi Refining, 4 for others (Early, Mid, Late, Peak)
+  baseQi: number;
+  qiMult: number;
+}
+
+export const RANK_CONFIG: Record<Rank, RankInfo> = {
+  [Rank.MORTAL]: { id: Rank.MORTAL, name: '凡人', title: '试用期', maxLevel: 1, baseQi: 100, qiMult: 1 },
+  [Rank.QI_REFINING]: { id: Rank.QI_REFINING, name: '练气', title: '实习生', maxLevel: 9, baseQi: 500, qiMult: 1.5 },
+  [Rank.FOUNDATION]: { id: Rank.FOUNDATION, name: '筑基', title: '专员', maxLevel: 4, baseQi: 10000, qiMult: 1.8 },
+  [Rank.GOLDEN_CORE]: { id: Rank.GOLDEN_CORE, name: '金丹', title: '组长', maxLevel: 4, baseQi: 50000, qiMult: 2.0 },
+  [Rank.NASCENT_SOUL]: { id: Rank.NASCENT_SOUL, name: '元婴', title: '经理', maxLevel: 4, baseQi: 200000, qiMult: 2.5 },
+  [Rank.SPIRIT_SEVERING]: { id: Rank.SPIRIT_SEVERING, name: '化神', title: '总监', maxLevel: 4, baseQi: 1000000, qiMult: 3.0 },
+  [Rank.VOID_REFINING]: { id: Rank.VOID_REFINING, name: '炼虚', title: 'VP', maxLevel: 4, baseQi: 5000000, qiMult: 4.0 },
+  [Rank.MAHAYANA]: { id: Rank.MAHAYANA, name: '大乘', title: '合伙人', maxLevel: 4, baseQi: 50000000, qiMult: 5.0 },
+  [Rank.IMMORTAL]: { id: Rank.IMMORTAL, name: '仙人', title: '财务自由', maxLevel: 1, baseQi: Infinity, qiMult: 1 }
+};
+
+// Helper to get display string: "练气期 三层" or "金丹期 中期"
+export const getRankLabel = (rank: Rank, level: number): string => {
+  const config = RANK_CONFIG[rank];
+  if (rank === Rank.MORTAL) return `${config.name} (${config.title})`;
+  if (rank === Rank.IMMORTAL) return config.name;
+
+  let subRank = '';
+  if (rank === Rank.QI_REFINING) {
+    subRank = `${level}层`;
+  } else {
+    const stages = ['前期', '中期', '后期', '圆满'];
+    subRank = stages[Math.min(level - 1, 3)] || '圆满';
+  }
+  
+  return `${config.name}期 ${subRank}`;
+};
+
+export const getFullRankTitle = (rank: Rank, level: number): string => {
+    const config = RANK_CONFIG[rank];
+    const label = getRankLabel(rank, level);
+    return `${label} - ${config.title}`;
 }
 
 export enum SectRank {
@@ -83,7 +128,7 @@ export interface PlayerStats {
   avatar: string; 
   rank: Rank;
   sectRank: SectRank;
-  level: number; 
+  level: number; // Uses for Minor Realm (1-9 or 1-4)
   qi: number;
   maxQi: number;
   spiritRoot: SpiritRootType;
@@ -127,18 +172,6 @@ export interface Task {
     avatar: string;
   };
 }
-
-export const RANK_THRESHOLDS: Record<Rank, number> = {
-  [Rank.MORTAL]: 100,
-  [Rank.QI_REFINING]: 1000,
-  [Rank.FOUNDATION]: 5000,
-  [Rank.GOLDEN_CORE]: 20000,
-  [Rank.NASCENT_SOUL]: 100000,
-  [Rank.SPIRIT_SEVERING]: 500000,
-  [Rank.VOID_REFINING]: 2000000,
-  [Rank.MAHAYANA]: 10000000,
-  [Rank.IMMORTAL]: Infinity,
-};
 
 export const SECT_PROMOTION_COST: Record<SectRank, number> = {
   [SectRank.OUTER]: 0,

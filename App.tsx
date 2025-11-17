@@ -41,7 +41,7 @@ export default function App() {
   };
 
   const handleMindComplete = (mind: string) => {
-    setPlayer({ mindState: mind, rank: Rank.MORTAL });
+    setPlayer({ mindState: mind, rank: Rank.MORTAL, level: 1 });
     setView(GameView.DASHBOARD);
   };
 

@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { generateTribulationQuiz, QuizQuestion } from '../services/geminiService';
 import { useGameStore } from '../store/useGameStore';
+import { getRankLabel } from '../types';
 import { Zap, Skull, CheckCircle, Briefcase } from 'lucide-react';
 
 export const Tribulation: React.FC = () => {
@@ -14,12 +16,13 @@ export const Tribulation: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      const qs = await generateTribulationQuiz(player.rank);
+      const rankLabel = getRankLabel(player.rank, player.level);
+      const qs = await generateTribulationQuiz(rankLabel);
       setQuestions(qs);
       setLoading(false);
     };
     load();
-  }, [player.rank]);
+  }, [player.rank, player.level]);
 
   const handleAnswer = (idx: number) => {
     const isCorrect = idx === questions[currentQ].correctIndex;
@@ -58,7 +61,7 @@ export const Tribulation: React.FC = () => {
                 <CheckCircle size={48} className="text-primary-500" />
               </div>
               <h2 className="text-4xl font-xianxia text-primary-500 mb-3">晋升成功</h2>
-              <p className="text-content-400 mb-8">恭喜通过绩效考核，职级+1，薪水(灵气上限)增加！</p>
+              <p className="text-content-400 mb-8">恭喜通过绩效考核，大境界突破，薪水(灵气上限)增加！</p>
               <button onClick={breakthroughSuccess} className="w-full py-4 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold shadow-lg shadow-primary-600/30">
                 办理入职/晋升手续
               </button>
