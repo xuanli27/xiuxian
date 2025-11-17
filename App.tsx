@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { GameView, Rank, SpiritRootType } from './types';
 import { useGameStore } from './store/useGameStore';
-import { SpiritRootCanvas, MindPathQuiz } from './components/Onboarding';
+import { SpiritRootCanvas, MindPathQuiz, IntroStory } from './components/Onboarding';
 import { Dashboard } from './components/Dashboard';
 import { Tribulation } from './components/Tribulation';
 import { TaskBoard } from './components/TaskBoard';
@@ -25,6 +25,10 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
+  const handleIntroComplete = () => {
+    setView(GameView.ONBOARDING_SPIRIT);
+  };
+
   const handleSpiritComplete = (root: SpiritRootType, avatar: string) => {
     setPlayer({ spiritRoot: root, avatar });
     setView(GameView.ONBOARDING_MIND);
@@ -37,6 +41,7 @@ export default function App() {
 
   const renderView = () => {
     switch (view) {
+      case GameView.INTRO: return <IntroStory onNext={handleIntroComplete} />;
       case GameView.ONBOARDING_SPIRIT: return <SpiritRootCanvas onNext={handleSpiritComplete} />;
       case GameView.ONBOARDING_MIND: return <MindPathQuiz onComplete={handleMindComplete} />;
       case GameView.TRIBULATION: return <Tribulation />;

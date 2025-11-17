@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { Task } from '../types';
-import { getRankLabel, MOYU_SITES } from '../data/constants';
+import { getRankLabel, MOYU_SITES, LOGIC_PUZZLES } from '../data/constants';
 import { generateDailyTasks } from '../services/geminiService';
-import { Scroll, Briefcase, Swords, Link2, CheckCircle, Loader2, Coins, X, BrainCircuit, ExternalLink, MousePointerClick, RefreshCw, Globe, BookOpen, MessageCircle, Mail, Compass } from 'lucide-react';
+import { Scroll, Briefcase, Swords, Link2, CheckCircle, Loader2, Coins, X, BrainCircuit, ExternalLink, MousePointerClick, RefreshCw, Globe, BookOpen, MessageCircle, Mail, Compass, TrendingUp, TrendingDown, Cpu, Code } from 'lucide-react';
 import { Button, Modal, Badge } from './ui/Shared';
 import clsx from 'clsx';
 
@@ -116,7 +116,7 @@ const TaskCard = ({ task, onStart }: { task: Task, onStart: () => void }) => {
 
 const NavigationStation = ({ duration, onComplete }: { duration: number, onComplete: (s: boolean) => void }) => {
   const [timer, setTimer] = useState(duration);
-  const [currentUrl, setCurrentUrl] = useState<string | null>(null);
+  const [currentSite, setCurrentSite] = useState<{name:string, url:string, gameType?: string} | null>(null);
   const [activeTimer, setActiveTimer] = useState(false);
 
   useEffect(() => {
@@ -127,44 +127,101 @@ const NavigationStation = ({ duration, onComplete }: { duration: number, onCompl
     return () => clearInterval(interval);
   }, [activeTimer, timer]);
 
-  const handleSiteClick = (url: string) => {
-      setCurrentUrl(url);
-      setActiveTimer(true);
+  const handleSiteClick = (site: any) => {
+      setCurrentSite(site);
+      // If it's a plain TIMER type, start timer immediately
+      if (!site.gameType || site.gameType === 'TIMER') {
+        setActiveTimer(true);
+      }
   };
 
   const handleBack = () => {
-      setCurrentUrl(null);
-      // Keep timer running or pause? Let's pause if they aren't "browsing"
+      setCurrentSite(null);
       setActiveTimer(false);
+      setTimer(duration); // Reset timer logic for new site
+  };
+
+  const renderControlPanel = () => {
+      if (!currentSite) return null;
+
+      // 1. Stock Market Game
+      if (currentSite.gameType === 'STOCK') {
+          return (
+              <div className="absolute bottom-0 left-0 right-0 bg-surface-900/95 backdrop-blur border-t border-border-base p-4 shadow-2xl animate-in slide-in-from-bottom-10">
+                  <div className="max-w-3xl mx-auto flex flex-col items-center gap-4">
+                      <div className="flex items-center gap-2 text-secondary-400 font-bold animate-pulse">
+                          <TrendingUp size={20} />
+                          <span>检测到剧烈市场波动，请预判走势以完成摸鱼！</span>
+                      </div>
+                      <StockMarketGame onComplete={onComplete} />
+                  </div>
+              </div>
+          );
+      }
+
+      // 2. Logic Puzzle Game
+      if (currentSite.gameType === 'LOGIC') {
+          return (
+               <div className="absolute bottom-0 left-0 right-0 bg-surface-900/95 backdrop-blur border-t border-border-base p-4 shadow-2xl animate-in slide-in-from-bottom-10">
+                  <div className="max-w-3xl mx-auto flex flex-col items-center gap-4">
+                      <div className="flex items-center gap-2 text-primary-400 font-bold animate-pulse">
+                          <Cpu size={20} />
+                          <span>检测到逻辑漏洞，请修复BUG以继续摸鱼！</span>
+                      </div>
+                      <LogicPuzzleGame onComplete={onComplete} />
+                  </div>
+              </div>
+          );
+      }
+
+      // 3. Default Timer
+      return (
+        <div className="absolute bottom-6 right-6 pointer-events-none">
+            <div className="pointer-events-auto shadow-2xl">
+                <Button 
+                    disabled={timer > 0} 
+                    onClick={() => onComplete(true)} 
+                    size="lg" 
+                    variant={timer > 0 ? 'secondary' : 'primary'}
+                    className={clsx("shadow-xl border-2 backdrop-blur-md font-bold text-lg px-8 py-4 transition-all", timer > 0 ? "border-white/20 opacity-80" : "border-white animate-bounce")}
+                >
+                {timer > 0 ? `请继续浏览... (${timer}s)` : "摸鱼结束 (领取奖励)"}
+                </Button>
+            </div>
+        </div>
+      );
   };
 
   return (
     <div className="flex flex-col h-full bg-surface-950">
       {/* Address & Toolbar */}
       <div className="bg-surface-800 p-2 border-b border-border-base flex items-center gap-3 shrink-0 shadow-sm">
-         <button onClick={handleBack} disabled={!currentUrl} className="p-2 hover:bg-surface-700 rounded-lg text-content-400 disabled:opacity-30">
+         <button onClick={handleBack} disabled={!currentSite} className="p-2 hover:bg-surface-700 rounded-lg text-content-400 disabled:opacity-30">
             <Compass size={20} />
          </button>
          
          <div className="flex-1 bg-surface-900 rounded-lg px-3 py-2 text-xs text-content-400 font-mono truncate border border-border-base flex items-center">
             <Globe size={12} className="mr-2 text-primary-400" />
-            <span className="truncate">{currentUrl || "moyu://portal (摸鱼导航站)"}</span>
+            <span className="truncate">{currentSite?.url || "moyu://portal (摸鱼导航站)"}</span>
          </div>
 
-         <div className="bg-surface-900 px-3 py-1.5 rounded-lg border border-border-base min-w-[80px] text-center">
-            {timer > 0 ? (
-                <span className={clsx("font-mono font-bold flex items-center justify-center gap-1", activeTimer ? "text-secondary-400 animate-pulse" : "text-content-400")}>
-                    {activeTimer ? <Loader2 size={12} className="animate-spin" /> : "⏸"} {timer}s
-                </span>
-            ) : (
-                <span className="text-primary-400 font-bold flex items-center justify-center gap-1">
-                    <CheckCircle size={12} /> 完成
-                </span>
-            )}
-         </div>
+         {/* Timer display only for TIMER type */}
+         {(!currentSite?.gameType || currentSite?.gameType === 'TIMER') && (
+            <div className="bg-surface-900 px-3 py-1.5 rounded-lg border border-border-base min-w-[80px] text-center">
+                {timer > 0 ? (
+                    <span className={clsx("font-mono font-bold flex items-center justify-center gap-1", activeTimer ? "text-secondary-400 animate-pulse" : "text-content-400")}>
+                        {activeTimer ? <Loader2 size={12} className="animate-spin" /> : "⏸"} {timer}s
+                    </span>
+                ) : (
+                    <span className="text-primary-400 font-bold flex items-center justify-center gap-1">
+                        <CheckCircle size={12} /> 完成
+                    </span>
+                )}
+            </div>
+         )}
          
-         {currentUrl && (
-             <a href={currentUrl} target="_blank" rel="noreferrer" className="p-2 hover:bg-surface-700 rounded-lg text-content-400 transition-colors" title="在外部浏览器打开">
+         {currentSite && (
+             <a href={currentSite.url} target="_blank" rel="noreferrer" className="p-2 hover:bg-surface-700 rounded-lg text-content-400 transition-colors" title="在外部浏览器打开">
                 <ExternalLink size={20} />
              </a>
          )}
@@ -172,27 +229,15 @@ const NavigationStation = ({ duration, onComplete }: { duration: number, onCompl
 
       {/* Content Area */}
       <div className="flex-1 relative bg-surface-100 w-full overflow-hidden">
-         {currentUrl ? (
+         {currentSite ? (
              <>
                 <iframe 
-                    src={currentUrl} 
+                    src={currentSite.url} 
                     className="w-full h-full border-0 bg-white" 
                     sandbox="allow-forms allow-popups allow-scripts allow-same-origin allow-top-navigation-by-user-activation"
                     title="Moyu Browser" 
                 />
-                <div className="absolute bottom-6 right-6 pointer-events-none">
-                    <div className="pointer-events-auto shadow-2xl">
-                        <Button 
-                            disabled={timer > 0} 
-                            onClick={() => onComplete(true)} 
-                            size="lg" 
-                            variant={timer > 0 ? 'secondary' : 'primary'}
-                            className={clsx("shadow-xl border-2 backdrop-blur-md font-bold text-lg px-8 py-4", timer > 0 ? "border-white/20 opacity-80" : "border-white animate-bounce")}
-                        >
-                        {timer > 0 ? "请继续浏览..." : "摸鱼结束 (领取奖励)"}
-                        </Button>
-                    </div>
-                </div>
+                {renderControlPanel()}
              </>
          ) : (
              <div className="h-full overflow-y-auto p-8 bg-surface-950">
@@ -210,14 +255,16 @@ const NavigationStation = ({ duration, onComplete }: { duration: number, onCompl
                                     {category.category}
                                 </h3>
                                 <div className="grid grid-cols-2 gap-3">
-                                    {category.sites.map((site, sIdx) => (
+                                    {category.sites.map((site: any, sIdx) => (
                                         <button 
                                             key={sIdx}
-                                            onClick={() => handleSiteClick(site.url)}
-                                            className="flex flex-col items-start p-3 rounded-xl bg-surface-700 hover:bg-surface-600 hover:scale-105 transition-all border border-transparent hover:border-primary-500/30 group text-left w-full"
+                                            onClick={() => handleSiteClick(site)}
+                                            className="flex flex-col items-start p-3 rounded-xl bg-surface-700 hover:bg-surface-600 hover:scale-105 transition-all border border-transparent hover:border-primary-500/30 group text-left w-full relative overflow-hidden"
                                         >
-                                            <span className="font-bold text-content-100 group-hover:text-primary-400 transition-colors">{site.name}</span>
-                                            <span className="text-xs text-content-400 mt-1">{site.desc}</span>
+                                            <span className="font-bold text-content-100 group-hover:text-primary-400 transition-colors z-10 relative">{site.name}</span>
+                                            <span className="text-xs text-content-400 mt-1 z-10 relative">{site.desc}</span>
+                                            {site.gameType === 'STOCK' && <TrendingUp className="absolute right-2 bottom-2 opacity-5 text-secondary-500" size={40} />}
+                                            {site.gameType === 'LOGIC' && <Code className="absolute right-2 bottom-2 opacity-5 text-primary-500" size={40} />}
                                         </button>
                                     ))}
                                 </div>
@@ -226,7 +273,7 @@ const NavigationStation = ({ duration, onComplete }: { duration: number, onCompl
                     </div>
                     
                     <div className="mt-12 p-4 bg-surface-800/50 rounded-xl border border-dashed border-content-400/20 text-center text-xs text-content-400">
-                        <p>提示：点击任意站点开始计时。请确保在老板视线盲区操作。</p>
+                        <p>提示：部分站点包含特殊小游戏，成功挑战可获得额外奖励！</p>
                     </div>
                  </div>
              </div>
@@ -234,6 +281,152 @@ const NavigationStation = ({ duration, onComplete }: { duration: number, onCompl
       </div>
     </div>
   );
+};
+
+// --- Mini Game Components ---
+
+const StockMarketGame = ({ onComplete }: { onComplete: (s: boolean) => void }) => {
+    const [data, setData] = useState<number[]>([]);
+    const [gameState, setGameState] = useState<'WAITING' | 'BETTING' | 'RESULT'>('WAITING');
+    const [bet, setBet] = useState<'UP' | 'DOWN' | null>(null);
+    const [result, setResult] = useState<'WIN' | 'LOSE' | null>(null);
+
+    // Initialize random chart data
+    useEffect(() => {
+        const start = 50;
+        const points = [start];
+        for (let i = 0; i < 10; i++) {
+            points.push(points[i] + (Math.random() * 10 - 5));
+        }
+        setData(points);
+        setGameState('BETTING');
+    }, []);
+
+    const handleBet = (type: 'UP' | 'DOWN') => {
+        setBet(type);
+        setGameState('RESULT');
+        
+        // Simulate next price movement
+        const lastPrice = data[data.length - 1];
+        const nextPrice = lastPrice + (Math.random() * 20 - 10);
+        const newData = [...data, nextPrice];
+        
+        // Animation delay
+        let step = 0;
+        const animInterval = setInterval(() => {
+             step++;
+             const intermediatePrice = lastPrice + ((nextPrice - lastPrice) * (step/20));
+             setData(prev => [...prev.slice(0, prev.length - 1), intermediatePrice]); // Smoothly update last point visually? No, simplified: just append
+             
+             if (step === 1) setData(prev => [...prev, lastPrice]); // Add the new point start
+             else setData(prev => [...prev.slice(0, prev.length - 1), intermediatePrice]);
+
+             if (step >= 20) {
+                 clearInterval(animInterval);
+                 const isWin = (type === 'UP' && nextPrice > lastPrice) || (type === 'DOWN' && nextPrice < lastPrice);
+                 setResult(isWin ? 'WIN' : 'LOSE');
+                 setTimeout(() => onComplete(isWin), 1500);
+             }
+        }, 50);
+    };
+
+    const maxVal = Math.max(...data) + 10;
+    const minVal = Math.min(...data) - 10;
+    const width = 300;
+    const height = 100;
+    
+    const pointsStr = data.map((val, i) => {
+        const x = (i / (data.length + (gameState === 'RESULT' ? 0 : 1) - 1)) * width;
+        const y = height - ((val - minVal) / (maxVal - minVal)) * height;
+        return `${x},${y}`;
+    }).join(' ');
+
+    return (
+        <div className="w-full max-w-md bg-surface-800 rounded-xl p-4 border border-border-base shadow-lg">
+            <div className="text-center mb-2 font-bold text-content-200">K线走势预测</div>
+            <div className="h-[100px] w-full bg-surface-900 rounded mb-4 relative overflow-hidden border border-white/5">
+                <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+                    <polyline 
+                        points={pointsStr} 
+                        fill="none" 
+                        stroke={result === 'WIN' ? '#10B981' : (result === 'LOSE' ? '#EF4444' : '#3B82F6')} 
+                        strokeWidth="2" 
+                        strokeLinecap="round"
+                        vectorEffect="non-scaling-stroke"
+                    />
+                </svg>
+                {result && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 font-xianxia text-2xl animate-in zoom-in">
+                        {result === 'WIN' ? <span className="text-primary-400">预判成功!</span> : <span className="text-danger-400">韭菜被割!</span>}
+                    </div>
+                )}
+            </div>
+
+            {gameState === 'BETTING' && (
+                <div className="flex gap-4">
+                    <Button variant="primary" className="flex-1 bg-red-600 hover:bg-red-500 border-none" onClick={() => handleBet('UP')} icon={<TrendingUp />}>看涨 (Buy Call)</Button>
+                    <Button variant="primary" className="flex-1 bg-green-600 hover:bg-green-500 border-none" onClick={() => handleBet('DOWN')} icon={<TrendingDown />}>看跌 (Buy Put)</Button>
+                </div>
+            )}
+            {gameState === 'RESULT' && !result && <div className="text-center text-sm text-content-400 animate-pulse">市场波动中...</div>}
+        </div>
+    );
+};
+
+const LogicPuzzleGame = ({ onComplete }: { onComplete: (s: boolean) => void }) => {
+    const [puzzle, setPuzzle] = useState(LOGIC_PUZZLES[0]);
+    const [answered, setAnswered] = useState<number | null>(null);
+
+    useEffect(() => {
+        const random = LOGIC_PUZZLES[Math.floor(Math.random() * LOGIC_PUZZLES.length)];
+        setPuzzle(random);
+    }, []);
+
+    const handleAnswer = (idx: number) => {
+        setAnswered(idx);
+        const isCorrect = idx === puzzle.a;
+        setTimeout(() => onComplete(isCorrect), 1000);
+    };
+
+    return (
+        <div className="w-full max-w-md bg-surface-800 rounded-xl p-6 border border-border-base shadow-lg">
+            <div className="flex items-center gap-2 mb-4 text-primary-400 font-mono text-xs bg-surface-900/50 p-2 rounded">
+                <Code size={14} />
+                <span>DEBUG_CONSOLE_V1.0</span>
+            </div>
+            
+            <div className="font-mono text-lg text-content-100 mb-6 font-bold">
+                {puzzle.q}
+            </div>
+
+            <div className="grid grid-cols-1 gap-2">
+                {puzzle.options.map((opt, idx) => {
+                    const isSelected = answered === idx;
+                    const isCorrect = idx === puzzle.a;
+                    
+                    let variant = "bg-surface-700 hover:bg-surface-600";
+                    if (answered !== null) {
+                        if (isCorrect) variant = "bg-primary-600 text-white";
+                        else if (isSelected) variant = "bg-danger-600 text-white";
+                        else variant = "bg-surface-700 opacity-50";
+                    }
+
+                    return (
+                        <button
+                            key={idx}
+                            disabled={answered !== null}
+                            onClick={() => handleAnswer(idx)}
+                            className={clsx("w-full text-left px-4 py-3 rounded-lg transition-all font-mono text-sm flex justify-between items-center", variant)}
+                        >
+                            <span>{opt}</span>
+                            {answered !== null && isCorrect && <CheckCircle size={16} />}
+                            {answered !== null && isSelected && !isCorrect && <X size={16} />}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
 };
 
 const MessageCleanerGame = ({ duration, onComplete }: { duration: number, onComplete: (s: boolean) => void }) => {

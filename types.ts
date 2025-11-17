@@ -1,5 +1,6 @@
 
 export enum GameView {
+  INTRO = 'INTRO',
   ONBOARDING_SPIRIT = 'ONBOARDING_SPIRIT',
   ONBOARDING_MIND = 'ONBOARDING_MIND',
   DASHBOARD = 'DASHBOARD',
@@ -49,14 +50,27 @@ export enum SpiritRootType {
   WASTE = '废灵根 (外包)'
 }
 
+export enum EquipmentSlot {
+  HEAD = 'HEAD',
+  BODY = 'BODY',
+  WEAPON = 'WEAPON', // Keyboards, Mouse, etc.
+  ACCESSORY = 'ACCESSORY'
+}
+
 export interface Item {
   id: string;
   name: string;
   description: string;
-  effect: 'HEAL_QI' | 'REDUCE_DEMON' | 'AUTO_TASK' | 'DOUBLE_QI';
+  effect: 'HEAL_QI' | 'REDUCE_DEMON' | 'AUTO_TASK' | 'DOUBLE_QI' | 'EQUIP';
   value: number;
   icon: string;
   type: 'CONSUMABLE' | 'ARTIFACT';
+  slot?: EquipmentSlot;
+  bonus?: {
+    qiMultiplier?: number; // e.g. 0.1 for +10%
+    demonReduction?: number; // e.g. 0.1 for -10% gain
+    flatQi?: number; // Passive flat gain
+  };
 }
 
 export interface Material {
@@ -104,6 +118,7 @@ export interface PlayerStats {
   location: string; 
   history: string[]; 
   inventory: Record<string, number>;
+  equipped: Record<EquipmentSlot, string | null>;
   materials: Record<string, number>;
   theme: Theme; 
   createTime: number;

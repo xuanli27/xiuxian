@@ -1,8 +1,8 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { PlayerStats, Rank, SectRank, SpiritRootType, Task, GameView } from '../types';
-import { RANK_CONFIG, SECT_PROMOTION_COST, SHOP_ITEMS, SHOP_PRICES, RECIPES, CAVE_LEVELS, MATERIALS, getRankLabel } from '../data/constants';
+import { PlayerStats, Rank, SectRank, SpiritRootType, Task, GameView, EquipmentSlot } from '../types';
+import { RANK_CONFIG, SECT_PROMOTION_COST, SHOP_ITEMS, SHOP_PRICES, RECIPES, CAVE_LEVELS, MATERIALS, ALL_ITEMS, getRankLabel } from '../data/constants';
 import { generateOfflineSummary } from '../services/geminiService';
 
 const calculateMaxQi = (rank: Rank, level: number) => {
@@ -28,6 +28,12 @@ const INITIAL_STATS: PlayerStats = {
   history: [],
   inventory: {},
   materials: {},
+  equipped: {
+    [EquipmentSlot.HEAD]: null,
+    [EquipmentSlot.BODY]: null,
+    [EquipmentSlot.WEAPON]: null,
+    [EquipmentSlot.ACCESSORY]: null
+  },
   theme: 'dark',
   createTime: Date.now(),
   lastLoginTime: Date.now()
@@ -59,18 +65,22 @@ interface GameState {
   promoteSectRank: () => boolean;
   buyItem: (itemId: string) => boolean;
   useItem: (itemId: string) => void;
+  equipItem: (itemId: string) => void;
+  unequipItem: (slot: EquipmentSlot) => void;
   
   upgradeCave: () => boolean;
   craftItem: (recipeId: string) => 'SUCCESS' | 'FAIL' | 'NO_RES';
   
   clearOfflineReport: () => void;
   initializeGame: () => void;
+  
+  getBonuses: () => { qiMultiplier: number, demonReduction: number, flatQi: number };
 }
 
 export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
-      view: GameView.ONBOARDING_SPIRIT,
+      view: GameView.INTRO,
       player: INITIAL_STATS,
       tasks: [],
       offlineReport: null,
@@ -83,21 +93,47 @@ export const useGameStore = create<GameState>()(
       
       setTasks: (tasks) => set({ tasks }),
 
-      completeTask: (task, success) => set((state) => {
+      getBonuses: () => {
+        const state = get();
+        let qiMultiplier = 0;
+        let demonReduction = 0;
+        let flatQi = 0;
+        
+        Object.values(state.player.equipped).forEach(itemId => {
+            if (itemId) {
+                const item = ALL_ITEMS.find(i => i.id === itemId);
+                if (item && item.bonus) {
+                    qiMultiplier += item.bonus.qiMultiplier || 0;
+                    demonReduction += item.bonus.demonReduction || 0;
+                    flatQi += item.bonus.flatQi || 0;
+                }
+            }
+        });
+        return { qiMultiplier, demonReduction, flatQi };
+      },
+
+      completeTask: (task, success) => {
+        const state = get();
         const t = state.tasks.find(x => x.id === task.id);
-        if (!t || t.completed) return {};
+        if (!t || t.completed) return;
 
         if (!success) {
-          return {
+          set({
             player: {
               ...state.player,
               innerDemon: Math.min(100, state.player.innerDemon + 10)
             },
             tasks: state.tasks.map(x => x.id === task.id ? { ...x, completed: true, title: `${x.title} (失败)` } : x)
-          };
+          });
+          return;
         }
 
-        const newQi = state.player.qi + task.reward.qi;
+        const bonuses = state.getBonuses();
+        const baseQi = task.reward.qi;
+        const bonusQi = baseQi * bonuses.qiMultiplier;
+        const totalQi = baseQi + bonusQi + bonuses.flatQi;
+
+        const newQi = state.player.qi + totalQi;
         const newContrib = state.player.contribution + (task.reward.contribution || 0);
         const newStones = state.player.spiritStones + (task.reward.stones || 0);
         
@@ -108,49 +144,63 @@ export const useGameStore = create<GameState>()(
           });
         }
 
-        return {
+        // Demon reduction from equipment also applies to task completion stress relief? 
+        // Or maybe it just helps avoid stress. Let's say it increases the relief.
+        const demonRelief = 5 * (1 + bonuses.demonReduction);
+
+        set({
           player: {
             ...state.player,
             qi: newQi,
             contribution: newContrib,
             spiritStones: newStones,
             materials: newMaterials,
-            innerDemon: Math.max(0, state.player.innerDemon - 5)
+            innerDemon: Math.max(0, state.player.innerDemon - demonRelief)
           },
           tasks: state.tasks.map(x => x.id === task.id ? { ...x, completed: true } : x)
-        };
-      }),
+        });
+      },
 
-      gainQi: (amount) => set((state) => {
+      gainQi: (amount) => {
+          const state = get();
+          const caveConfig = CAVE_LEVELS.find(c => c.level === state.player.caveLevel) || CAVE_LEVELS[0];
+          const bonuses = state.getBonuses();
+          
+          const multiplier = caveConfig.qiMultiplier + bonuses.qiMultiplier;
+          
+          let demonFactor = 1.0;
+          // Equipment can mitigate demon effects
+          const effectiveDemon = Math.max(0, state.player.innerDemon * (1 - bonuses.demonReduction));
+
+          if (effectiveDemon > 80) demonFactor = 0.5;
+          else if (effectiveDemon > 50) demonFactor = 0.8;
+
+          set({
+            player: { ...state.player, qi: state.player.qi + (amount * multiplier * demonFactor) + bonuses.flatQi }
+          });
+      },
+
+      tick: () => {
+        const state = get();
+        if (state.view === GameView.ONBOARDING_MIND || state.view === GameView.ONBOARDING_SPIRIT || state.view === GameView.INTRO) return;
+        
         const caveConfig = CAVE_LEVELS.find(c => c.level === state.player.caveLevel) || CAVE_LEVELS[0];
-        const multiplier = caveConfig.qiMultiplier;
+        const bonuses = state.getBonuses();
+
+        const multiplier = caveConfig.qiMultiplier + bonuses.qiMultiplier;
         
+        const effectiveDemon = Math.max(0, state.player.innerDemon * (1 - bonuses.demonReduction));
         let demonFactor = 1.0;
-        if (state.player.innerDemon > 80) demonFactor = 0.5;
-        else if (state.player.innerDemon > 50) demonFactor = 0.8;
+        if (effectiveDemon > 80) demonFactor = 0.5;
 
-        return {
-          player: { ...state.player, qi: state.player.qi + (amount * multiplier * demonFactor) }
-        };
-      }),
-
-      tick: () => set((state) => {
-        if (state.view === GameView.ONBOARDING_MIND || state.view === GameView.ONBOARDING_SPIRIT) return {};
-        
-        const caveConfig = CAVE_LEVELS.find(c => c.level === state.player.caveLevel) || CAVE_LEVELS[0];
-        const multiplier = caveConfig.qiMultiplier;
-        
-        let demonFactor = 1.0;
-        if (state.player.innerDemon > 80) demonFactor = 0.5;
-
-        return {
+        set({
           player: {
             ...state.player,
-            qi: state.player.qi + ((BASE_QI_RATE * multiplier * demonFactor) / 10),
+            qi: state.player.qi + ((BASE_QI_RATE * multiplier * demonFactor) / 10) + (bonuses.flatQi / 10),
             lastLoginTime: Date.now()
           }
-        };
-      }),
+        });
+      },
 
       minorBreakthrough: () => set((state) => {
         const nextLevel = state.player.level + 1;
@@ -242,8 +292,14 @@ export const useGameStore = create<GameState>()(
         const count = state.player.inventory[itemId];
         if (!count || count <= 0) return;
 
-        const item = SHOP_ITEMS.find(i => i.id === itemId);
+        const item = ALL_ITEMS.find(i => i.id === itemId);
         if (!item) return;
+        
+        // If it's equipment, route to equipItem (though usually triggered by separate button)
+        if (item.type === 'ARTIFACT') {
+            state.equipItem(itemId);
+            return;
+        }
 
         let updates: Partial<PlayerStats> = {
           inventory: {
@@ -259,6 +315,57 @@ export const useGameStore = create<GameState>()(
         }
 
         set({ player: { ...state.player, ...updates } });
+      },
+
+      equipItem: (itemId: string) => {
+          const state = get();
+          const item = ALL_ITEMS.find(i => i.id === itemId);
+          if (!item || !item.slot || (state.player.inventory[itemId] || 0) <= 0) return;
+
+          const slot = item.slot;
+          const currentEquippedId = state.player.equipped[slot];
+          
+          let newInventory = { ...state.player.inventory };
+          let newEquipped = { ...state.player.equipped };
+
+          // If something is already equipped, unequip it first (add back to inventory)
+          if (currentEquippedId) {
+              newInventory[currentEquippedId] = (newInventory[currentEquippedId] || 0) + 1;
+          }
+
+          // Remove new item from inventory
+          newInventory[itemId]--;
+          
+          // Equip new item
+          newEquipped[slot] = itemId;
+
+          set({
+              player: {
+                  ...state.player,
+                  inventory: newInventory,
+                  equipped: newEquipped
+              }
+          });
+      },
+
+      unequipItem: (slot: EquipmentSlot) => {
+          const state = get();
+          const itemId = state.player.equipped[slot];
+          if (!itemId) return;
+
+          set({
+              player: {
+                  ...state.player,
+                  equipped: {
+                      ...state.player.equipped,
+                      [slot]: null
+                  },
+                  inventory: {
+                      ...state.player.inventory,
+                      [itemId]: (state.player.inventory[itemId] || 0) + 1
+                  }
+              }
+          });
       },
 
       upgradeCave: () => {
@@ -344,16 +451,26 @@ export const useGameStore = create<GameState>()(
             updates.maxQi = calculateMaxQi(state.player.rank, state.player.level);
         }
         if(!state.player.level) updates.level = 1;
+        
+        // Initialize equipped if missing (migration)
+        if (!state.player.equipped) {
+            updates.equipped = INITIAL_STATS.equipped;
+        }
 
         if (Object.keys(updates).length > 0) {
              set(s => ({ player: { ...s.player, ...updates } }));
         }
 
-        if (diffSeconds > 60 && state.view !== GameView.ONBOARDING_SPIRIT && state.view !== GameView.ONBOARDING_MIND) {
-           const gainedQi = diffSeconds * OFFLINE_QI_RATE;
+        const isIntroOrOnboarding = state.view === GameView.INTRO || state.view === GameView.ONBOARDING_SPIRIT || state.view === GameView.ONBOARDING_MIND;
+
+        if (diffSeconds > 60 && !isIntroOrOnboarding) {
+           const bonuses = state.getBonuses();
+           const equipmentBonus = bonuses.qiMultiplier > 0 ? `(含装备加成 ${(bonuses.qiMultiplier*100).toFixed(0)}%)` : '';
+           const gainedQi = diffSeconds * OFFLINE_QI_RATE * (1 + bonuses.qiMultiplier);
+           
            const rankLabel = getRankLabel(state.player.rank, state.player.level);
            generateOfflineSummary(diffSeconds / 3600, rankLabel, state.player.innerDemon).then(summary => {
-             set({ offlineReport: `摸鱼离线 ${Math.floor(diffSeconds/60)} 分钟。\n被动吸取灵气 ${Math.floor(gainedQi)}。\n\n${summary}` });
+             set({ offlineReport: `摸鱼离线 ${Math.floor(diffSeconds/60)} 分钟。\n被动吸取灵气 ${Math.floor(gainedQi)} ${equipmentBonus}。\n\n${summary}` });
            });
            set((state) => ({
              player: {

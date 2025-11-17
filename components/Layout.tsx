@@ -13,7 +13,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     document.documentElement.setAttribute('data-theme', player.theme);
   }, [player.theme]);
 
-  const showNav = view !== GameView.ONBOARDING_SPIRIT && view !== GameView.ONBOARDING_MIND && view !== GameView.TRIBULATION;
+  const showNav = view !== GameView.INTRO && view !== GameView.ONBOARDING_SPIRIT && view !== GameView.ONBOARDING_MIND && view !== GameView.TRIBULATION;
 
   return (
     <div className="min-h-screen bg-surface-950 text-content-100 font-serif selection:bg-primary-500/30 pb-20 transition-colors duration-500 relative overflow-hidden">
