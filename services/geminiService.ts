@@ -15,9 +15,9 @@ export const generateSpiritRootFeedback = async (chaosScore: number): Promise<st
       Chaos Score (0-100, higher is messier): ${chaosScore}.
       
       Act as a sarcastic HR of the "Xianyu Sect" (Salted Fish Sect). 
-      If score < 20: Praise their ability to follow rules, but call them a "Corporate Slave".
-      If score > 80: Praise their chaotic energy as "Upper Management Material".
-      Otherwise: Call them "Mediocre Middleware".
+      If score < 20: Praise their ability to follow rules, but call them a "Corporate Slave" (社畜).
+      If score > 80: Praise their chaotic energy as "Upper Management Material" (画饼大师).
+      Otherwise: Call them "Mediocre Middleware" (耗材).
       Keep it under 30 words. Language: Chinese (Simplified).
     `;
 
@@ -39,8 +39,8 @@ export const generateOfflineSummary = async (hours: number, rankLabel: string, d
       Rank/Realm: ${rankLabel}.
       Stress/Inner Demon Level: ${demon}%.
       
-      Write a short cultivation log (max 100 words) tailored to a "Slacking Off Cultivator" in a corporate sect.
-      Events should be like: "Spent 3 hours in the toilet pretending to meditate", "Drank 5 cups of bubble tea elixir".
+      Write a short cultivation log (max 100 words) tailored to a "Slacking Off Cultivator" in a modern company sect.
+      Events should be like: "Hid in the toilet", "Attended a useless meeting via astral projection (sleeping)", "Gossip at the pantry".
       Language: Chinese (Simplified).
     `;
     
@@ -65,21 +65,19 @@ export const generateTribulationQuiz = async (rankLabel: string): Promise<QuizQu
     const prompt = `
       Generate 3 multiple choice questions for a "Performance Review" (Heavenly Tribulation) for a cultivator at ${rankLabel} rank in the "Xianyu Sect".
       
-      THEME: Workplace survival, slacking off (moyu), dealing with bosses/clients, but wrapped in Xianxia terms.
+      THEME: General Workplace Survival (Sales, HR, Admin, Management). Slacking off (moyu).
       Strictly use Chinese (Simplified).
       
       Questions MUST be about:
-      - Hiding windows when boss comes.
-      - Excuses for being late/missing deadlines.
-      - Dealing with unreasonable demands.
-      - Office snack distribution.
+      - Dealing with unreasonable Clients/Bosses.
+      - Techniques for fake working (Excel art, Alt-Tab).
+      - Office politics (Potluck, Reimbursement).
       
       Examples: 
-      - "The Sect Master (Boss) walks by. You are watching videos. What do you do?" -> "Cast 'Alt-Tab' Instant Shift Technique".
-      - "Client wants to change requirements for the 10th time." -> "Activate 'Passive Aggressive' shield".
+      - "Boss asks for a 50-page PPT by tomorrow." -> "Use 'Ctrl+C Ctrl+V' Great Shift".
+      - "Client says 'I want it colorful but black'." -> "Activate 'Colorful Black' Illusion".
       
       Return valid JSON only.
-      Schema: Array of objects with 'question' (string), 'options' (string array size 4), 'correctIndex' (0-3).
     `;
 
     const responseSchema: Schema = {
@@ -111,17 +109,17 @@ export const generateTribulationQuiz = async (rankLabel: string): Promise<QuizQu
     console.error("Quiz Generation Error", error);
     return [
       {
-        question: "当宗主（老板）经过你身后时，你正在看小说，此时应施展什么神通？",
-        options: ["Alt-Tab 瞬移术", "黑屏隐身决", "强行解释大道", "邀请宗主一起看"],
+        question: "当老板经过你身后时，你正在看剧，此时应施展什么神通？",
+        options: ["Alt-Tab 瞬移术", "黑屏隐身决", "强行解释这是竞品分析", "邀请老板一起看"],
         correctIndex: 0
       },
       {
-        question: "‘这个需求很简单，怎么实现我不管’ 是哪种心魔？",
-        options: ["产品经理之怒", "甲方噬魂咒", "技术债", "无论如何都得加钱"],
+        question: "甲方要求‘五彩斑斓的黑’，该如何应对？",
+        options: ["当场辞职", "施展‘糊弄学’大法", "建议他去挂眼科", "给他个黑屏说是概念艺术"],
         correctIndex: 1
       },
        {
-        question: "面对周五下午5点的紧急会议（天劫），最佳应对策略是？",
+        question: "周五下午5点的紧急会议（天劫），最佳应对策略是？",
         options: ["立刻接受挑战", "施展‘肚子疼’遁术", "断网闭关", "带薪加班"],
         correctIndex: 1
       }
@@ -136,11 +134,12 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
     const prompt = `
       Generate 4 daily tasks for "Xianyu Sect" (Moyu). Rank: ${rank}.
       
-      Theme: Corporate Cultivation, Slacking off.
+      Theme: General Corporate Life (Sales, HR, Design, Finance, Admin).
+      
       Types:
-      1. LINK: Visiting an external website to learn "Spells" (Tech docs/News). Provide 'url' (e.g. Wikipedia, GitHub).
-      2. BATTLE: Arguing with NPC (e.g. "Bug Demon", "Toxic PM"). Must provide 'enemy'.
-      3. GAME: "Debugging" (Clicking bugs).
+      1. LINK: "Data Gathering" (Browsing websites for inspiration/slacking). 
+      2. BATTLE: "Verbal Sparring" with "Unreasonable Client", "Micro-managing Boss", "Gossiping Colleague".
+      3. GAME: "Inbox Zero" (Clearing unread emails/messages).
       
       Reward: Qi (50-200), Contribution (10-50), Stones (10-100), Material (Optional ID from: ${matNames}).
       
@@ -174,11 +173,6 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
           },
           duration: { type: Type.INTEGER },
           completed: { type: Type.BOOLEAN },
-          url: { type: Type.STRING },
-          quiz: {
-            type: Type.OBJECT,
-            properties: { question: {type:Type.STRING}, options:{type:Type.ARRAY, items:{type:Type.STRING}}, correctIndex:{type:Type.INTEGER} }
-          },
           enemy: {
             type: Type.OBJECT,
             properties: { name: {type:Type.STRING}, title: {type:Type.STRING}, power: {type:Type.INTEGER}, avatar: {type:Type.STRING} }
@@ -205,8 +199,7 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
         ...t,
         id: `task-${Date.now()}-${i}`,
         completed: false,
-        url: t.url || "https://zh.wikipedia.org/wiki/Special:Random",
-        quiz: t.type === 'LINK' && !t.quiz ? { question: "刚才页面里提到了什么？", options: ["不知道", "摸鱼真快乐", "404 Not Found", "量子力学"], correctIndex: 1 } : t.quiz,
+        // Default fallback for link url handled by the component now
         enemy: t.type === 'BATTLE' && !t.enemy ? { name: "心魔幻影", title: "Lv.1 杂鱼", power: 100, avatar: "👻" } : t.enemy
     }));
 
@@ -215,33 +208,31 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
     return [
       {
           id: 't1',
-          title: '清理代码Bug',
-          description: '一大波Bug正在靠近，快点击消灭它们！',
+          title: '清理未读消息',
+          description: '群消息99+，强迫症发作，快去点掉！',
           type: 'GAME',
-          reward: { qi: 50, contribution: 10, stones: 20, materials: [{id: 'bug_shell', count: 1}] },
+          reward: { qi: 50, contribution: 10, stones: 20, materials: [{id: 'trash_paper', count: 1}] },
           duration: 5,
           completed: false
       },
       {
           id: 't2',
-          title: '与产品经理论道',
-          description: '试图说服PM这个需求做不了。',
+          title: '与甲方论道',
+          description: '试图说服对方：LOGO不能同时放大又缩小。',
           type: 'BATTLE',
           reward: { qi: 100, contribution: 20, stones: 50 },
           duration: 10,
           completed: false,
-          enemy: { name: "P7产品经理", title: "需求制造者", power: 200, avatar: "👨‍💼" }
+          enemy: { name: "迷茫的甲方", title: "需求制造者", power: 200, avatar: "🤡" }
       },
       {
           id: 't3',
-          title: '研读上古卷轴',
-          description: '浏览文档学习新技术（摸鱼）。',
+          title: '调研市场竞品',
+          description: '去摸鱼网站看看大家都在聊什么（寻找灵感）。',
           type: 'LINK',
-          url: 'https://zh.wikipedia.org/wiki/Python',
           reward: { qi: 80, contribution: 15, stones: 30 },
           duration: 5,
-          completed: false,
-          quiz: { question: "Python的设计哲学之一是？", options: ["越复杂越好", "优雅胜于丑陋", "能跑就行", "全是括号"], correctIndex: 1 }
+          completed: false
       }
     ];
   }

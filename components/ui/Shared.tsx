@@ -74,14 +74,17 @@ interface ModalProps {
   children: React.ReactNode;
   maxWidth?: string;
   icon?: React.ReactNode;
+  scrollable?: boolean;
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = "max-w-md", icon }) => {
+export const Modal: React.FC<ModalProps> = ({ 
+  isOpen, onClose, title, children, maxWidth = "max-w-md", icon, scrollable = true 
+}) => {
   if (!isOpen) return null;
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className={clsx("bg-surface-800 w-full rounded-3xl border border-border-base shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200", maxWidth)}>
+      <div className={clsx("bg-surface-800 w-full rounded-3xl border border-border-base shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[95vh]", maxWidth)}>
         <div className="bg-surface-900 p-4 border-b border-border-base flex justify-between items-center shrink-0">
            <h3 className="font-bold text-lg flex items-center gap-2 truncate text-content-100">
               {icon}
@@ -91,7 +94,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
              <X size={20} />
            </button>
         </div>
-        <div className="flex-1 overflow-y-auto relative bg-surface-900/50 p-0">
+        <div className={clsx("flex-1 relative bg-surface-900/50 p-0 flex flex-col", scrollable ? "overflow-y-auto" : "overflow-hidden")}>
            {children}
         </div>
       </div>

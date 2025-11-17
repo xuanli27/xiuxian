@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { Task } from '../types';
-import { getRankLabel } from '../data/constants';
+import { getRankLabel, MOYU_SITES } from '../data/constants';
 import { generateDailyTasks } from '../services/geminiService';
-import { Scroll, Briefcase, Swords, Link2, CheckCircle, Loader2, Coins, X, BrainCircuit, ExternalLink, MousePointerClick, RefreshCw } from 'lucide-react';
+import { Scroll, Briefcase, Swords, Link2, CheckCircle, Loader2, Coins, X, BrainCircuit, ExternalLink, MousePointerClick, RefreshCw, Globe, BookOpen, MessageCircle, Mail, Compass } from 'lucide-react';
 import { Button, Modal, Badge } from './ui/Shared';
 import clsx from 'clsx';
 
@@ -49,7 +49,7 @@ export const TaskBoard: React.FC = () => {
 
       <div className="grid gap-4">
         {loading ? (
-           <div className="text-center py-12 text-content-400 animate-pulse"><Loader2 className="animate-spin mb-2 mx-auto" />正在同步 JIRA 数据...</div>
+           <div className="text-center py-12 text-content-400 animate-pulse"><Loader2 className="animate-spin mb-2 mx-auto" />正在同步 OA 系统...</div>
         ) : (
           tasks.map(task => <TaskCard key={task.id} task={task} onStart={() => handleStartTask(task)} />)
         )}
@@ -59,14 +59,15 @@ export const TaskBoard: React.FC = () => {
         isOpen={showModal} 
         onClose={() => setShowModal(false)} 
         title={activeTask?.title || "任务进行中"}
-        icon={activeTask?.type === 'BATTLE' ? <Swords size={18} className="text-danger-400"/> : (activeTask?.type === 'LINK' ? <BrainCircuit size={18} className="text-blue-400"/> : <MousePointerClick size={18} className="text-primary-400"/>)}
-        maxWidth={activeTask?.type === 'LINK' ? "max-w-3xl h-[80vh]" : "max-w-md"}
+        icon={activeTask?.type === 'BATTLE' ? <Swords size={18} className="text-danger-400"/> : (activeTask?.type === 'LINK' ? <Compass size={18} className="text-blue-400"/> : <MousePointerClick size={18} className="text-primary-400"/>)}
+        maxWidth={activeTask?.type === 'LINK' ? "w-[95vw] max-w-6xl h-[90vh]" : "max-w-md"}
+        scrollable={activeTask?.type !== 'LINK'}
       >
          {activeTask && (
             <>
-              {activeTask.type === 'GAME' && <BugSquasherGame duration={activeTask.duration} onComplete={handleComplete} />}
+              {activeTask.type === 'GAME' && <MessageCleanerGame duration={activeTask.duration} onComplete={handleComplete} />}
               {activeTask.type === 'BATTLE' && activeTask.enemy && <BattleArena playerPower={player.qi} enemy={activeTask.enemy} onComplete={handleComplete} />}
-              {activeTask.type === 'LINK' && activeTask.url && activeTask.quiz && <BrowserWindow url={activeTask.url} duration={activeTask.duration} quiz={activeTask.quiz} onComplete={handleComplete} />}
+              {activeTask.type === 'LINK' && <NavigationStation duration={activeTask.duration} onComplete={handleComplete} />}
             </>
          )}
       </Modal>
@@ -113,57 +114,132 @@ const TaskCard = ({ task, onStart }: { task: Task, onStart: () => void }) => {
   );
 };
 
-const BrowserWindow = ({ url, duration, quiz, onComplete }: { url: string, duration: number, quiz: any, onComplete: (s: boolean) => void }) => {
+const NavigationStation = ({ duration, onComplete }: { duration: number, onComplete: (s: boolean) => void }) => {
   const [timer, setTimer] = useState(duration);
-  const [showQuiz, setShowQuiz] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState<string | null>(null);
+  const [activeTimer, setActiveTimer] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(() => setTimer(t => Math.max(0, t - 1)), 1000);
+    let interval: any;
+    if (activeTimer && timer > 0) {
+       interval = setInterval(() => setTimer(t => Math.max(0, t - 1)), 1000);
+    }
     return () => clearInterval(interval);
-  }, []);
+  }, [activeTimer, timer]);
+
+  const handleSiteClick = (url: string) => {
+      setCurrentUrl(url);
+      setActiveTimer(true);
+  };
+
+  const handleBack = () => {
+      setCurrentUrl(null);
+      // Keep timer running or pause? Let's pause if they aren't "browsing"
+      setActiveTimer(false);
+  };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="bg-surface-800 p-2 border-b border-border-base flex items-center gap-2 shrink-0">
-         <div className="flex gap-1.5 mr-2"><div className="w-3 h-3 rounded-full bg-red-500/50"/><div className="w-3 h-3 rounded-full bg-yellow-500/50"/><div className="w-3 h-3 rounded-full bg-green-500/50"/></div>
-         <div className="flex-1 bg-surface-900 rounded-md px-3 py-1 text-xs text-content-400 font-mono truncate flex justify-between items-center">
-            <span>{url}</span>
-            {timer > 0 ? <span className="text-primary-400 animate-pulse">阅读中 {timer}s...</span> : <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle size={10}/> 就绪</span>}
+    <div className="flex flex-col h-full bg-surface-950">
+      {/* Address & Toolbar */}
+      <div className="bg-surface-800 p-2 border-b border-border-base flex items-center gap-3 shrink-0 shadow-sm">
+         <button onClick={handleBack} disabled={!currentUrl} className="p-2 hover:bg-surface-700 rounded-lg text-content-400 disabled:opacity-30">
+            <Compass size={20} />
+         </button>
+         
+         <div className="flex-1 bg-surface-900 rounded-lg px-3 py-2 text-xs text-content-400 font-mono truncate border border-border-base flex items-center">
+            <Globe size={12} className="mr-2 text-primary-400" />
+            <span className="truncate">{currentUrl || "moyu://portal (摸鱼导航站)"}</span>
          </div>
-         <a href={url} target="_blank" rel="noreferrer" className="p-1.5 hover:bg-surface-700 rounded text-content-400"><ExternalLink size={14} /></a>
+
+         <div className="bg-surface-900 px-3 py-1.5 rounded-lg border border-border-base min-w-[80px] text-center">
+            {timer > 0 ? (
+                <span className={clsx("font-mono font-bold flex items-center justify-center gap-1", activeTimer ? "text-secondary-400 animate-pulse" : "text-content-400")}>
+                    {activeTimer ? <Loader2 size={12} className="animate-spin" /> : "⏸"} {timer}s
+                </span>
+            ) : (
+                <span className="text-primary-400 font-bold flex items-center justify-center gap-1">
+                    <CheckCircle size={12} /> 完成
+                </span>
+            )}
+         </div>
+         
+         {currentUrl && (
+             <a href={currentUrl} target="_blank" rel="noreferrer" className="p-2 hover:bg-surface-700 rounded-lg text-content-400 transition-colors" title="在外部浏览器打开">
+                <ExternalLink size={20} />
+             </a>
+         )}
       </div>
-      <div className="flex-1 relative bg-white">
-         {!showQuiz ? (
-            <>
-              <iframe src={url} className="w-full h-full" sandbox="allow-scripts allow-same-origin" title="Moyu Browser" />
-              <div className="absolute bottom-6 right-6">
-                 <Button disabled={timer > 0} onClick={() => setShowQuiz(true)} size="lg" className="shadow-xl">
-                   {timer > 0 ? `请阅读 ${timer}秒` : "我学会了 (开始答题)"}
-                 </Button>
-              </div>
-            </>
+
+      {/* Content Area */}
+      <div className="flex-1 relative bg-surface-100 w-full overflow-hidden">
+         {currentUrl ? (
+             <>
+                <iframe 
+                    src={currentUrl} 
+                    className="w-full h-full border-0 bg-white" 
+                    sandbox="allow-forms allow-popups allow-scripts allow-same-origin allow-top-navigation-by-user-activation"
+                    title="Moyu Browser" 
+                />
+                <div className="absolute bottom-6 right-6 pointer-events-none">
+                    <div className="pointer-events-auto shadow-2xl">
+                        <Button 
+                            disabled={timer > 0} 
+                            onClick={() => onComplete(true)} 
+                            size="lg" 
+                            variant={timer > 0 ? 'secondary' : 'primary'}
+                            className={clsx("shadow-xl border-2 backdrop-blur-md font-bold text-lg px-8 py-4", timer > 0 ? "border-white/20 opacity-80" : "border-white animate-bounce")}
+                        >
+                        {timer > 0 ? "请继续浏览..." : "摸鱼结束 (领取奖励)"}
+                        </Button>
+                    </div>
+                </div>
+             </>
          ) : (
-            <div className="absolute inset-0 bg-surface-900 flex flex-col items-center justify-center p-8 text-content-100">
-               <BrainCircuit size={48} className="text-primary-400 mb-6" />
-               <h3 className="text-2xl font-bold mb-8 text-center">{quiz.question}</h3>
-               <div className="grid gap-4 w-full max-w-md">
-                  {quiz.options.map((opt: string, idx: number) => (
-                    <button key={idx} onClick={() => onComplete(idx === quiz.correctIndex)} className="p-4 rounded-xl bg-surface-800 hover:bg-primary-600 hover:text-white border border-border-base transition-all text-left font-bold">
-                       {['A','B','C','D'][idx]}. {opt}
-                    </button>
-                  ))}
-               </div>
-            </div>
+             <div className="h-full overflow-y-auto p-8 bg-surface-950">
+                 <div className="max-w-4xl mx-auto">
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-xianxia text-primary-400 mb-2">摸鱼导航站</h2>
+                        <p className="text-content-400">"工欲善其事，必先利其器"</p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        {MOYU_SITES.map((category, idx) => (
+                            <div key={idx} className="bg-surface-800 rounded-2xl border border-border-base p-5">
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-secondary-400">
+                                    {idx === 0 ? <Briefcase size={18} /> : <BrainCircuit size={18} />}
+                                    {category.category}
+                                </h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {category.sites.map((site, sIdx) => (
+                                        <button 
+                                            key={sIdx}
+                                            onClick={() => handleSiteClick(site.url)}
+                                            className="flex flex-col items-start p-3 rounded-xl bg-surface-700 hover:bg-surface-600 hover:scale-105 transition-all border border-transparent hover:border-primary-500/30 group text-left w-full"
+                                        >
+                                            <span className="font-bold text-content-100 group-hover:text-primary-400 transition-colors">{site.name}</span>
+                                            <span className="text-xs text-content-400 mt-1">{site.desc}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <div className="mt-12 p-4 bg-surface-800/50 rounded-xl border border-dashed border-content-400/20 text-center text-xs text-content-400">
+                        <p>提示：点击任意站点开始计时。请确保在老板视线盲区操作。</p>
+                    </div>
+                 </div>
+             </div>
          )}
       </div>
     </div>
   );
 };
 
-const BugSquasherGame = ({ duration, onComplete }: { duration: number, onComplete: (s: boolean) => void }) => {
+const MessageCleanerGame = ({ duration, onComplete }: { duration: number, onComplete: (s: boolean) => void }) => {
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(duration);
-  const [bugs, setBugs] = useState<{id: number, x: number, y: number}[]>([]);
+  const [msgs, setMsgs] = useState<{id: number, x: number, y: number, type: 'mail'|'chat'}[]>([]);
   
   useEffect(() => {
      const timer = setInterval(() => {
@@ -173,16 +249,34 @@ const BugSquasherGame = ({ duration, onComplete }: { duration: number, onComplet
         });
      }, 100);
      const spawner = setInterval(() => {
-        if (Math.random() > 0.3) setBugs(b => [...b, { id: Math.random(), x: Math.random() * 80 + 10, y: Math.random() * 80 + 10 }]);
-     }, 600);
+        if (Math.random() > 0.2) {
+            setMsgs(b => [...b, { 
+                id: Math.random(), 
+                x: Math.random() * 80 + 10, 
+                y: Math.random() * 80 + 10,
+                type: Math.random() > 0.5 ? 'mail' : 'chat'
+            }]);
+        }
+     }, 500);
      return () => { clearInterval(timer); clearInterval(spawner); };
   }, []);
 
   return (
-    <div className="h-[300px] relative bg-surface-900 select-none overflow-hidden cursor-crosshair">
-       <div className="absolute top-2 left-2 text-xs font-mono text-primary-400 bg-surface-800 px-2 py-1 rounded">TIME: {timeLeft.toFixed(1)}s | SCORE: {score}/5</div>
-       {bugs.map(bug => (
-          <div key={bug.id} onMouseDown={() => { setBugs(b => b.filter(x => x.id !== bug.id)); setScore(s => s + 1); }} className="absolute text-2xl cursor-pointer hover:scale-125 transition-transform animate-bounce" style={{ left: `${bug.x}%`, top: `${bug.y}%` }}>🐞</div>
+    <div className="h-[300px] relative bg-surface-900 select-none overflow-hidden cursor-crosshair rounded-xl border border-border-base">
+       <div className="absolute top-2 left-2 text-xs font-mono text-primary-400 bg-surface-800 px-2 py-1 rounded z-10 border border-primary-500/30">TIME: {timeLeft.toFixed(1)}s | CLEARED: {score}/5</div>
+       <div className="absolute bottom-2 right-2 text-xs text-content-400 opacity-50">点击未读消息消除红点</div>
+       {msgs.map(msg => (
+          <div 
+            key={msg.id} 
+            onMouseDown={() => { setMsgs(b => b.filter(x => x.id !== msg.id)); setScore(s => s + 1); }} 
+            className="absolute text-3xl cursor-pointer hover:scale-110 transition-transform animate-in zoom-in duration-300" 
+            style={{ left: `${msg.x}%`, top: `${msg.y}%` }}
+          >
+            <div className="relative">
+                {msg.type === 'mail' ? <Mail className="text-blue-400" /> : <MessageCircle className="text-green-400" />}
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-surface-900 animate-pulse" />
+            </div>
+          </div>
        ))}
     </div>
   );

@@ -36,54 +36,115 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
     window.addEventListener('resize', resize);
     resize();
 
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
     let animationId: number;
-    const particles: { x: number; y: number; life: number }[] = [];
+    let particles: { x: number; y: number; speed: number; pathOffset: number; pathId: number }[] = [];
+    
+    // Silhouette Path Points (Simplified Meditating Figure)
+    // Normalized coordinates 0-1
+    const silhouettePoints = [
+        [0.5, 0.1], // Head top
+        [0.6, 0.2], // Right Shoulder
+        [0.8, 0.4], // Right Elbow
+        [0.6, 0.6], // Right Hand (Lap)
+        [0.5, 0.65], // Lap center
+        [0.4, 0.6], // Left Hand (Lap)
+        [0.2, 0.4], // Left Elbow
+        [0.4, 0.2], // Left Shoulder
+        [0.5, 0.1]  // Close
+    ];
+    
+    // Internal Meridian Paths (Chakras flow)
+    const meridians = [
+        // Central Channel (Microcosmic Orbit)
+        [[0.5, 0.65], [0.5, 0.5], [0.5, 0.3], [0.5, 0.15]], 
+        // Arms flow
+        [[0.5, 0.3], [0.6, 0.2], [0.8, 0.4], [0.6, 0.6]],
+        [[0.5, 0.3], [0.4, 0.2], [0.2, 0.4], [0.4, 0.6]]
+    ];
 
     const render = () => {
       const styles = getComputedStyle(document.documentElement);
       const pColor = styles.getPropertyValue('--accent-main').trim() || '#10B981';
+      const w = canvas.width;
+      const h = canvas.height;
+      const scale = Math.min(w, h) * 0.8;
+      const offsetX = (w - scale) / 2;
+      const offsetY = (h - scale) / 2;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, w, h);
       
-      if (Math.random() < 0.3) {
-        const angle = Math.random() * Math.PI * 2;
-        const r = Math.min(canvas.width, canvas.height) / 2;
-        particles.push({
-          x: centerX + Math.cos(angle) * r,
-          y: centerY + Math.sin(angle) * r,
-          life: 1.0
-        });
+      // Draw Silhouette Background
+      ctx.beginPath();
+      ctx.strokeStyle = pColor;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.2;
+      
+      // Draw approximate body shape (Head)
+      ctx.arc(w/2, offsetY + scale*0.15, scale*0.1, 0, Math.PI*2);
+      
+      // Body
+      ctx.moveTo(w/2, offsetY + scale*0.25);
+      ctx.lineTo(w/2 + scale*0.2, offsetY + scale*0.3); // R Shoulder
+      ctx.lineTo(w/2 + scale*0.3, offsetY + scale*0.6); // R Knee
+      ctx.lineTo(w/2 - scale*0.3, offsetY + scale*0.6); // L Knee
+      ctx.lineTo(w/2 - scale*0.2, offsetY + scale*0.3); // L Shoulder
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = pColor;
+      ctx.fill();
+
+      // Spawn Particles flowing along meridians
+      if (particles.length < 30) {
+          const pathId = Math.floor(Math.random() * meridians.length);
+          particles.push({
+              pathId,
+              pathOffset: 0,
+              x: 0, y: 0,
+              speed: 0.005 + Math.random() * 0.01
+          });
       }
+
+      // Update and Draw Particles
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = pColor;
 
       for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        const dx = centerX - p.x;
-        const dy = centerY - p.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        
-        p.x += (dx / dist) * 3; 
-        p.y += (dy / dist) * 3;
-        p.life -= 0.015;
+          const p = particles[i];
+          const path = meridians[p.pathId];
+          
+          // Calculate position based on pathOffset (0 to 1)
+          const totalPoints = path.length - 1;
+          const segmentIndex = Math.floor(p.pathOffset * totalPoints);
+          const nextSegmentIndex = Math.min(segmentIndex + 1, totalPoints);
+          const segmentProgress = (p.pathOffset * totalPoints) - segmentIndex;
 
-        ctx.fillStyle = pColor;
-        ctx.globalAlpha = p.life;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-        ctx.fill();
+          const p1 = path[segmentIndex];
+          const p2 = path[nextSegmentIndex];
 
-        if (dist < 15 || p.life <= 0) particles.splice(i, 1);
+          if (p1 && p2) {
+              const realX = offsetX + (p1[0] + (p2[0] - p1[0]) * segmentProgress) * scale;
+              const realY = offsetY + (p1[1] + (p2[1] - p1[1]) * segmentProgress) * scale;
+              
+              ctx.beginPath();
+              ctx.arc(realX, realY, 2 + Math.random() * 2, 0, Math.PI*2);
+              ctx.fill();
+          }
+
+          p.pathOffset += p.speed;
+          if (p.pathOffset >= 1) {
+              particles.splice(i, 1);
+          }
       }
       
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 20;
-      ctx.shadowColor = pColor;
+      // Dantian (Center) Glow
+      ctx.shadowBlur = 30;
       ctx.fillStyle = pColor;
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 25 + Math.sin(Date.now() / 300) * 3, 0, Math.PI * 2);
+      const dantianSize = 10 + Math.sin(Date.now() / 500) * 3 + (progress / 10);
+      ctx.arc(w/2, offsetY + scale*0.6, dantianSize, 0, Math.PI*2);
       ctx.fill();
-      ctx.shadowBlur = 0;
 
       animationId = requestAnimationFrame(render);
     };
@@ -93,7 +154,7 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(animationId);
     };
-  }, [player.theme]);
+  }, [player.theme, player.qi, player.maxQi]);
 
   return (
     <div className="p-4 w-full max-w-4xl mx-auto pb-24">
@@ -106,20 +167,21 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Visualizer */}
+        {/* Visualizer (Inner Vision) */}
         <div 
             ref={containerRef} 
-            className="relative h-80 bg-surface-800/50 rounded-3xl border border-border-base overflow-hidden flex items-center justify-center cursor-pointer group transition-all hover:shadow-2xl hover:shadow-primary-500/20 hover:scale-[1.01] backdrop-blur-sm"
+            className="relative h-96 bg-surface-800/50 rounded-3xl border border-border-base overflow-hidden flex items-center justify-center cursor-pointer group transition-all hover:shadow-2xl hover:shadow-primary-500/20 backdrop-blur-sm"
             onClick={() => gainQi(10)}
         >
             <canvas ref={canvasRef} className="absolute inset-0" />
-            <div className="z-10 text-center pointer-events-none select-none">
-                <h2 className="text-4xl font-xianxia text-content-100 drop-shadow-lg animate-pulse">摸鱼聚气</h2>
-                <p className="text-primary-400/80 text-sm mt-2">点击汲取天地精华</p>
+            <div className="absolute top-4 left-4 text-primary-400/50 font-xianxia text-2xl select-none">内视运气图</div>
+            
+            <div className="z-10 text-center pointer-events-none select-none mt-32 group-hover:scale-110 transition-transform duration-300">
+                <p className="text-primary-200/50 text-sm animate-pulse">点击丹田 吐纳灵气</p>
             </div>
              <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none">
                  <span className="bg-surface-900/80 px-4 py-1 rounded-full text-sm text-primary-400 border border-primary-600/50 font-mono">
-                     Qi: {Math.floor(player.qi)}
+                     Current Qi: {Math.floor(player.qi)}
                  </span>
              </div>
         </div>
@@ -149,20 +211,24 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
                 disabled={!canBreakthrough}
                 onClick={isMaxLevel ? onBreakthrough : minorBreakthrough}
                 variant={isMaxLevel ? 'danger' : 'secondary'}
-                className={canBreakthrough ? "animate-pulse" : ""}
-                icon={isMaxLevel ? <Zap /> : <ArrowUpCircle />}
+                className={canBreakthrough ? "animate-pulse h-16 text-lg" : "h-16"}
+                icon={isMaxLevel ? <Zap size={24} /> : <ArrowUpCircle size={24} />}
             >
                  {canBreakthrough 
                     ? (isMaxLevel ? `渡劫 (晋升${RANK_CONFIG[player.rank].title})` : "小境界突破")
-                    : (isMaxLevel ? "灵气不足以渡劫" : "积累中...")}
+                    : (isMaxLevel ? "灵气不足以渡劫" : "闭关积累中...")}
             </Button>
 
             {player.innerDemon > 50 && (
               <div className="bg-danger-900/30 border border-danger-500/30 p-3 rounded-xl flex items-center gap-2 text-danger-400 text-sm animate-pulse">
                  <ShieldAlert size={16} />
-                 <span>警告：心魔过重，修炼效率降低！请速去功德阁购买减压道具。</span>
+                 <span>警告：心魔过重，经脉运行受阻！请速去功德阁购买减压道具。</span>
               </div>
             )}
+            
+            <div className="text-xs text-content-400 text-center italic">
+                "呼吸之间，天地灵气为我所用... (点击左侧人物加速)"
+            </div>
         </div>
       </div>
     </div>
