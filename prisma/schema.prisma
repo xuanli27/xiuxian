@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+// ==================== 用户系统 ====================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  player   Player?
+  accounts Account[]
+  sessions Session[]
+  
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+// ==================== 游戏核心 ====================
+
+enum Rank {
+  MORTAL
+  QI_REFINING
+  FOUNDATION
+  GOLDEN_CORE
+  NASCENT_SOUL
+  SPIRIT_SEVERING
+  VOID_REFINING
+  MAHAYANA
+  IMMORTAL
+}
+
+enum SectRank {
+  OUTER
+  INNER
+  ELITE
+  ELDER
+  MASTER
+}
+
+enum SpiritRootType {
+  HEAVEN
+  EARTH
+  HUMAN
+  WASTE
+}
+
+model Player {
+  id     Int    @id @default(autoincrement())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 基础信息
+  name   String
+  avatar String?
+  
+  // 修为信息
+  rank     Rank     @default(MORTAL)
+  sectRank SectRank @default(OUTER)
+  level    Int      @default(1)
+  qi       Float    @default(0)
+  maxQi    Float    @default(100)
+  
+  // 资质与心性
+  spiritRoot SpiritRootType @default(WASTE)
+  mindState  String          @default("刚入职")
+  
+  // 资源
+  innerDemon    Float @default(0)
+  contribution  Int   @default(0)
+  spiritStones  Int   @default(0)
+  caveLevel     Int   @default(1)
+  
+  // JSON字段
+  inventory Json @default("{}")
+  equipped  Json @default("{}")
+  materials Json @default("{}")
+  history   Json @default("[]")
+  
+  // 时间戳
+  createTime    DateTime @default(now())
+  lastLoginTime DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  tasks             Task[]
+  leaderboardEntry  Leaderboard[]
+  
+  @@index([rank, level])
+  @@map("players")
+}
+
+// ==================== 任务系统 ====================
+
+enum TaskType {
+  LINK
+  GAME
+  BATTLE
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model Task {
+  id          Int    @id @default(autoincrement())
+  playerId    Int
+  player      Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String
+  type        TaskType
+  
+  // 奖励
+  rewardQi          Int
+  rewardContribution Int
+  rewardStones      Int
+  
+  duration Int
+  status   TaskStatus @default(PENDING)
+  
+  url   String?
+  quiz  Json?
+  enemy Json?
+  
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  
+  @@index([playerId, status])
+  @@map("tasks")
+}
+
+// ==================== 排行榜 ====================
+
+model Leaderboard {
+  id         Int      @id @default(autoincrement())
+  playerId   Int
+  player     Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  
+  playerName String
+  rank       Rank
+  level      Int
+  contribution Int
+  score      Int
+  
+  season     String
+  updatedAt  DateTime @updatedAt
+  
+  @@unique([playerId, season])
+  @@index([season, score])
+  @@map("leaderboard")
+}
