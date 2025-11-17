@@ -2,16 +2,18 @@
 import React, { useEffect } from 'react';
 import { GameView, Rank, SpiritRootType } from './types';
 import { useGameStore } from './store/useGameStore';
-import { SpiritRootCanvas, MindPathQuiz, IntroStory } from './components/Onboarding';
-import { Dashboard } from './components/Dashboard';
+import { IntroStory } from './components/onboarding/IntroStory';
+import { SpiritRootCanvas } from './components/onboarding/SpiritRootCanvas';
+import { MindPathQuiz } from './components/onboarding/MindPathQuiz';
+import { Dashboard } from './components/dashboard/Dashboard';
 import { Tribulation } from './components/Tribulation';
-import { TaskBoard } from './components/TaskBoard';
-import { SectHall } from './components/SectHall';
-import { Inventory } from './components/Inventory';
-import { CaveAbode } from './components/CaveAbode';
-import { Layout } from './components/Layout';
+import { TaskBoard } from './components/tasks/TaskBoard';
+import { SectHall } from './components/sect/SectHall';
+import { Inventory } from './components/inventory/Inventory';
+import { CaveAbode } from './components/cave/CaveAbode';
+import { Layout } from './components/layout/Layout';
 import { Modal } from './components/ui/Shared';
-import { ScrollText, X } from 'lucide-react';
+import { ScrollText } from 'lucide-react';
 
 export default function App() {
   const { 
@@ -65,10 +67,12 @@ export default function App() {
         icon={<ScrollText className="text-primary-400" size={24} />}
       >
          <div className="p-6">
-           <p className="whitespace-pre-line text-content-200 leading-relaxed text-sm mb-6">{offlineReport}</p>
+           <p className="whitespace-pre-line text-content-200 leading-relaxed text-sm mb-8 font-serif p-4 bg-surface-950/50 rounded-xl border border-white/5">
+             {offlineReport}
+           </p>
            <button 
              onClick={clearOfflineReport}
-             className="w-full py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold transition shadow-lg shadow-primary-600/30"
+             className="w-full py-4 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary-600/30"
            >
              继续搬砖
            </button>
