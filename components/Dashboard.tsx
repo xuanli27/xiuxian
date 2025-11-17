@@ -1,8 +1,9 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { RANK_CONFIG, CAVE_LEVELS, getRankLabel, getFullRankTitle } from '../types';
+import { RANK_CONFIG, CAVE_LEVELS, getRankLabel } from '../data/constants';
 import { Zap, Database, ShieldAlert, Coins, Home, ArrowUpCircle } from 'lucide-react';
+import { Button, Card } from './ui/Shared';
 import clsx from 'clsx';
 
 interface Props {
@@ -17,12 +18,11 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
   const currentCave = CAVE_LEVELS.find(c => c.level === player.caveLevel) || CAVE_LEVELS[0];
   const rankConfig = RANK_CONFIG[player.rank];
   
-  // Logic: Is player ready for next level?
   const canBreakthrough = player.qi >= player.maxQi;
-  // Logic: Is player at the Peak of current rank (needs Tribulation)?
   const isMaxLevel = player.level >= rankConfig.maxLevel;
+  const progress = Math.min(100, (player.qi / player.maxQi) * 100);
+  const displayRank = getRankLabel(player.rank, player.level);
 
-  // Qi Particle System (Updated for theme colors)
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
     const canvas = canvasRef.current;
@@ -73,9 +73,7 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
         ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
         ctx.fill();
 
-        if (dist < 15 || p.life <= 0) {
-          particles.splice(i, 1);
-        }
+        if (dist < 15 || p.life <= 0) particles.splice(i, 1);
       }
       
       ctx.globalAlpha = 1;
@@ -97,9 +95,6 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
     };
   }, [player.theme]);
 
-  const progress = Math.min(100, (player.qi / player.maxQi) * 100);
-  const displayRank = getRankLabel(player.rank, player.level);
-
   return (
     <div className="p-4 w-full max-w-4xl mx-auto pb-24">
       {/* 3D Stats Bar */}
@@ -110,7 +105,6 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
         <StatCard icon={<Home size={18} />} label="洞府加成" value={`${currentCave.qiMultiplier}x`} color="text-primary-400" delay={300} />
       </div>
 
-      {/* Main Cultivation Area */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Visualizer */}
         <div 
@@ -130,9 +124,9 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
              </div>
         </div>
 
-        {/* Controls & Progress */}
+        {/* Controls */}
         <div className="flex flex-col justify-center space-y-6">
-            <div className="bg-surface-800 p-6 rounded-2xl border border-border-base shadow-lg">
+            <Card className="shadow-lg">
                 <div className="flex justify-between mb-2 text-sm font-bold">
                     <span className="text-content-400">{rankConfig.title}考核进度</span>
                     <span className="text-primary-400">{progress.toFixed(1)}%</span>
@@ -148,39 +142,20 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
                 <p className="text-xs text-content-400 mt-2 text-right font-mono">
                     {Math.floor(player.qi)} / {player.maxQi === Infinity ? '∞' : player.maxQi}
                 </p>
-            </div>
+            </Card>
             
-            {/* Action Button: Changes based on state */}
-            {isMaxLevel ? (
-                 <button
-                    disabled={!canBreakthrough}
-                    onClick={onBreakthrough}
-                    className={clsx(
-                    "w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all duration-300 transform",
-                    canBreakthrough 
-                        ? 'bg-danger-600 hover:bg-danger-500 hover:-translate-y-1 text-white shadow-lg shadow-danger-600/30 animate-[pulse_2s_infinite]' 
-                        : 'bg-surface-700 text-content-400 cursor-not-allowed border border-border-base'
-                    )}
-                >
-                    <Zap className={canBreakthrough ? "animate-pulse" : ""} />
-                    {canBreakthrough ? `渡劫 (晋升${RANK_CONFIG[player.rank].title})` : "灵气不足以渡劫"}
-                </button>
-            ) : (
-                <button
-                    disabled={!canBreakthrough}
-                    onClick={minorBreakthrough}
-                    className={clsx(
-                    "w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all duration-300 transform",
-                    canBreakthrough 
-                        ? 'bg-secondary-600 hover:bg-secondary-400 hover:-translate-y-1 text-white shadow-lg shadow-secondary-600/30' 
-                        : 'bg-surface-700 text-content-400 cursor-not-allowed border border-border-base'
-                    )}
-                >
-                    <ArrowUpCircle className={canBreakthrough ? "animate-bounce" : ""} />
-                    {canBreakthrough ? "小境界突破" : "积累中..."}
-                </button>
-            )}
-
+            <Button
+                size="lg"
+                disabled={!canBreakthrough}
+                onClick={isMaxLevel ? onBreakthrough : minorBreakthrough}
+                variant={isMaxLevel ? 'danger' : 'secondary'}
+                className={canBreakthrough ? "animate-pulse" : ""}
+                icon={isMaxLevel ? <Zap /> : <ArrowUpCircle />}
+            >
+                 {canBreakthrough 
+                    ? (isMaxLevel ? `渡劫 (晋升${RANK_CONFIG[player.rank].title})` : "小境界突破")
+                    : (isMaxLevel ? "灵气不足以渡劫" : "积累中...")}
+            </Button>
 
             {player.innerDemon > 50 && (
               <div className="bg-danger-900/30 border border-danger-500/30 p-3 rounded-xl flex items-center gap-2 text-danger-400 text-sm animate-pulse">
@@ -194,17 +169,15 @@ export const Dashboard: React.FC<Props> = ({ onBreakthrough }) => {
   );
 };
 
-const StatCard = ({ icon, label, value, color, delay }: any) => {
-  return (
-    <div 
-      className="bg-surface-800 p-3 rounded-xl border border-border-base flex items-center gap-3 hover:bg-surface-700 transition-all hover:-translate-y-1 hover:shadow-lg duration-300"
-      style={{ animation: `fadeIn 0.5s ease-out ${delay}ms backwards` }}
-    >
-      <div className={`p-2 rounded-full bg-surface-900 ${color} shadow-inner`}>{icon}</div>
-      <div className="overflow-hidden">
-        <div className="text-xs text-content-400 truncate">{label}</div>
-        <div className="font-bold text-content-100 truncate">{value}</div>
-      </div>
+const StatCard = ({ icon, label, value, color, delay }: any) => (
+  <div 
+    className="bg-surface-800 p-3 rounded-xl border border-border-base flex items-center gap-3 hover:bg-surface-700 transition-all hover:-translate-y-1 hover:shadow-lg duration-300"
+    style={{ animation: `fadeIn 0.5s ease-out ${delay}ms backwards` }}
+  >
+    <div className={`p-2 rounded-full bg-surface-900 ${color} shadow-inner`}>{icon}</div>
+    <div className="overflow-hidden">
+      <div className="text-xs text-content-400 truncate">{label}</div>
+      <div className="font-bold text-content-100 truncate">{value}</div>
     </div>
-  );
-};
+  </div>
+);

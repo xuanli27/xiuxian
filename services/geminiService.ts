@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Task, MATERIALS } from "../types";
+import { Task } from "../types";
+import { MATERIALS } from "../data/constants";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -130,7 +131,6 @@ export const generateTribulationQuiz = async (rankLabel: string): Promise<QuizQu
 
 export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
   try {
-    // Simplified materials list string
     const matNames = MATERIALS.map(m => m.id).join(', ');
 
     const prompt = `
@@ -138,9 +138,9 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
       
       Theme: Corporate Cultivation, Slacking off.
       Types:
-      1. LINK: Visiting an external website (e.g. "Browse Tech News"). Must provide 'quiz'.
+      1. LINK: Visiting an external website to learn "Spells" (Tech docs/News). Provide 'url' (e.g. Wikipedia, GitHub).
       2. BATTLE: Arguing with NPC (e.g. "Bug Demon", "Toxic PM"). Must provide 'enemy'.
-      3. GAME: Simple clicker/wait.
+      3. GAME: "Debugging" (Clicking bugs).
       
       Reward: Qi (50-200), Contribution (10-50), Stones (10-100), Material (Optional ID from: ${matNames}).
       
@@ -174,7 +174,7 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
           },
           duration: { type: Type.INTEGER },
           completed: { type: Type.BOOLEAN },
-          // Optional interactive data
+          url: { type: Type.STRING },
           quiz: {
             type: Type.OBJECT,
             properties: { question: {type:Type.STRING}, options:{type:Type.ARRAY, items:{type:Type.STRING}}, correctIndex:{type:Type.INTEGER} }
@@ -205,8 +205,8 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
         ...t,
         id: `task-${Date.now()}-${i}`,
         completed: false,
-        // Fallback for missing quiz/enemy data if AI hallucinates structure
-        quiz: t.type === 'LINK' && !t.quiz ? { question: "摸鱼摸到了什么？", options: ["空气", "快乐", "知识", "焦虑"], correctIndex: 1 } : t.quiz,
+        url: t.url || "https://zh.wikipedia.org/wiki/Special:Random",
+        quiz: t.type === 'LINK' && !t.quiz ? { question: "刚才页面里提到了什么？", options: ["不知道", "摸鱼真快乐", "404 Not Found", "量子力学"], correctIndex: 1 } : t.quiz,
         enemy: t.type === 'BATTLE' && !t.enemy ? { name: "心魔幻影", title: "Lv.1 杂鱼", power: 100, avatar: "👻" } : t.enemy
     }));
 
@@ -215,8 +215,8 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
     return [
       {
           id: 't1',
-          title: '带薪如厕',
-          description: '在五谷轮回之所刷手机，腿不麻不出来。',
+          title: '清理代码Bug',
+          description: '一大波Bug正在靠近，快点击消灭它们！',
           type: 'GAME',
           reward: { qi: 50, contribution: 10, stones: 20, materials: [{id: 'bug_shell', count: 1}] },
           duration: 5,
@@ -231,6 +231,17 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
           duration: 10,
           completed: false,
           enemy: { name: "P7产品经理", title: "需求制造者", power: 200, avatar: "👨‍💼" }
+      },
+      {
+          id: 't3',
+          title: '研读上古卷轴',
+          description: '浏览文档学习新技术（摸鱼）。',
+          type: 'LINK',
+          url: 'https://zh.wikipedia.org/wiki/Python',
+          reward: { qi: 80, contribution: 15, stones: 30 },
+          duration: 5,
+          completed: false,
+          quiz: { question: "Python的设计哲学之一是？", options: ["越复杂越好", "优雅胜于丑陋", "能跑就行", "全是括号"], correctIndex: 1 }
       }
     ];
   }

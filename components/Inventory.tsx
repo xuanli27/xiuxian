@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { SHOP_ITEMS, MATERIALS } from '../types';
-import { Backpack, Sparkles, PackageOpen, Box, Ticket } from 'lucide-react';
+import { SHOP_ITEMS, MATERIALS } from '../data/constants';
+import { Backpack, PackageOpen } from 'lucide-react';
+import { Button, PageHeader } from './ui/Shared';
 import clsx from 'clsx';
 
 export const Inventory: React.FC = () => {
@@ -14,29 +15,16 @@ export const Inventory: React.FC = () => {
 
   return (
     <div className="p-4 pb-24 max-w-4xl mx-auto min-h-screen">
-      <div className="flex items-center justify-between mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary-600/20 rounded-2xl border border-primary-600/30">
-            <Backpack size={24} className="text-primary-400" />
+      <PageHeader 
+        title="百宝囊" 
+        icon={<Backpack size={24} />}
+        rightContent={
+          <div className="bg-surface-800 p-1 rounded-lg flex text-xs font-bold">
+            <button onClick={() => setTab('ITEMS')} className={clsx("px-4 py-1.5 rounded transition-colors", tab === 'ITEMS' ? "bg-surface-600 text-white" : "text-content-400")}>道具</button>
+            <button onClick={() => setTab('MATS')} className={clsx("px-4 py-1.5 rounded transition-colors", tab === 'MATS' ? "bg-surface-600 text-white" : "text-content-400")}>材料</button>
           </div>
-          <h1 className="font-xianxia text-3xl text-primary-400">百宝囊</h1>
-        </div>
-        
-        <div className="bg-surface-800 p-1 rounded-lg flex text-xs font-bold">
-          <button 
-            onClick={() => setTab('ITEMS')} 
-            className={clsx("px-4 py-1.5 rounded transition-colors", tab === 'ITEMS' ? "bg-surface-600 text-white" : "text-content-400")}
-          >
-            道具
-          </button>
-          <button 
-            onClick={() => setTab('MATS')} 
-            className={clsx("px-4 py-1.5 rounded transition-colors", tab === 'MATS' ? "bg-surface-600 text-white" : "text-content-400")}
-          >
-            材料
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {tab === 'ITEMS' ? (
         ownedItems.length === 0 ? <EmptyState msg="道具空空如也，去功德阁看看？" /> : (
@@ -45,21 +33,11 @@ export const Inventory: React.FC = () => {
               const count = player.inventory[item.id];
               return (
                 <div key={item.id} className="bg-surface-800 rounded-2xl p-4 border border-border-base flex gap-4">
-                  <div className="text-4xl bg-surface-900 w-16 h-16 rounded-xl flex items-center justify-center border border-border-base">
-                    {item.icon}
-                  </div>
+                  <div className="text-4xl bg-surface-900 w-16 h-16 rounded-xl flex items-center justify-center border border-border-base">{item.icon}</div>
                   <div className="flex-1">
-                     <div className="flex justify-between">
-                       <h3 className="font-bold text-content-100">{item.name}</h3>
-                       <span className="text-primary-400 font-mono font-bold">x{count}</span>
-                     </div>
+                     <div className="flex justify-between"><h3 className="font-bold text-content-100">{item.name}</h3><span className="text-primary-400 font-mono font-bold">x{count}</span></div>
                      <p className="text-xs text-content-400 mb-3 h-8 leading-snug">{item.description}</p>
-                     <button
-                      onClick={() => useItem(item.id)}
-                      className="px-4 py-1.5 bg-surface-700 hover:bg-primary-600 hover:text-white text-content-200 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      使用
-                    </button>
+                     <Button size="sm" variant="ghost" onClick={() => useItem(item.id)}>使用</Button>
                   </div>
                 </div>
               );

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { generateTribulationQuiz, QuizQuestion } from '../services/geminiService';
 import { useGameStore } from '../store/useGameStore';
-import { getRankLabel } from '../types';
+import { getRankLabel } from '../data/constants';
 import { Zap, Skull, CheckCircle, Briefcase } from 'lucide-react';
 
 export const Tribulation: React.FC = () => {

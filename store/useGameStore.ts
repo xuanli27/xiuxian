@@ -1,13 +1,12 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { PlayerStats, Rank, SectRank, SpiritRootType, Task, GameView, RANK_CONFIG, SECT_PROMOTION_COST, SHOP_ITEMS, SHOP_PRICES, Theme, RECIPES, CAVE_LEVELS, getRankLabel } from '../types';
+import { PlayerStats, Rank, SectRank, SpiritRootType, Task, GameView } from '../types';
+import { RANK_CONFIG, SECT_PROMOTION_COST, SHOP_ITEMS, SHOP_PRICES, RECIPES, CAVE_LEVELS, MATERIALS, getRankLabel } from '../data/constants';
 import { generateOfflineSummary } from '../services/geminiService';
 
 const calculateMaxQi = (rank: Rank, level: number) => {
   const config = RANK_CONFIG[rank];
-  // Exponential growth within steps
-  // Base * (Mult ^ (level - 1))
   return Math.floor(config.baseQi * Math.pow(config.qiMult, level - 1));
 };
 
@@ -43,10 +42,9 @@ interface GameState {
   tasks: Task[];
   offlineReport: string | null;
   
-  // Actions
   setView: (view: GameView) => void;
   setPlayer: (player: Partial<PlayerStats>) => void;
-  setTheme: (theme: Theme) => void;
+  setTheme: (theme: any) => void;
   setTasks: (tasks: Task[]) => void;
   
   completeTask: (task: Task, success: boolean) => void;
@@ -86,12 +84,10 @@ export const useGameStore = create<GameState>()(
       setTasks: (tasks) => set({ tasks }),
 
       completeTask: (task, success) => set((state) => {
-        // Find current task state
         const t = state.tasks.find(x => x.id === task.id);
         if (!t || t.completed) return {};
 
         if (!success) {
-          // Failed task (e.g. lost battle), gain stress
           return {
             player: {
               ...state.player,
@@ -101,12 +97,10 @@ export const useGameStore = create<GameState>()(
           };
         }
 
-        // Calculate Rewards
         const newQi = state.player.qi + task.reward.qi;
         const newContrib = state.player.contribution + (task.reward.contribution || 0);
         const newStones = state.player.spiritStones + (task.reward.stones || 0);
         
-        // Handle Materials
         const newMaterials = { ...state.player.materials };
         if (task.reward.materials) {
           task.reward.materials.forEach(mat => {
@@ -121,18 +115,16 @@ export const useGameStore = create<GameState>()(
             contribution: newContrib,
             spiritStones: newStones,
             materials: newMaterials,
-            innerDemon: Math.max(0, state.player.innerDemon - 5) // Success reduces stress slightly
+            innerDemon: Math.max(0, state.player.innerDemon - 5)
           },
           tasks: state.tasks.map(x => x.id === task.id ? { ...x, completed: true } : x)
         };
       }),
 
       gainQi: (amount) => set((state) => {
-        // Apply Cave Multiplier
         const caveConfig = CAVE_LEVELS.find(c => c.level === state.player.caveLevel) || CAVE_LEVELS[0];
         const multiplier = caveConfig.qiMultiplier;
         
-        // Apply Inner Demon Debuff
         let demonFactor = 1.0;
         if (state.player.innerDemon > 80) demonFactor = 0.5;
         else if (state.player.innerDemon > 50) demonFactor = 0.8;
@@ -145,7 +137,6 @@ export const useGameStore = create<GameState>()(
       tick: () => set((state) => {
         if (state.view === GameView.ONBOARDING_MIND || state.view === GameView.ONBOARDING_SPIRIT) return {};
         
-        // Passive Gain
         const caveConfig = CAVE_LEVELS.find(c => c.level === state.player.caveLevel) || CAVE_LEVELS[0];
         const multiplier = caveConfig.qiMultiplier;
         
@@ -161,7 +152,6 @@ export const useGameStore = create<GameState>()(
         };
       }),
 
-      // Minor Breakthrough (Step up, e.g., Layer 1 -> Layer 2)
       minorBreakthrough: () => set((state) => {
         const nextLevel = state.player.level + 1;
         const nextMaxQi = calculateMaxQi(state.player.rank, nextLevel);
@@ -170,19 +160,18 @@ export const useGameStore = create<GameState>()(
           player: {
             ...state.player,
             level: nextLevel,
-            qi: 0, // Reset Qi for new level
+            qi: 0,
             maxQi: nextMaxQi,
             innerDemon: Math.max(0, state.player.innerDemon - 5)
           }
         };
       }),
 
-      // Major Breakthrough (Rank up, e.g., Qi Refining -> Foundation)
       breakthroughSuccess: () => set((state) => {
         const ranks = Object.values(Rank);
         const currentIndex = ranks.indexOf(state.player.rank);
         const nextRank = ranks[currentIndex + 1] as Rank || Rank.IMMORTAL;
-        const nextMaxQi = calculateMaxQi(nextRank, 1); // Reset to Level 1 of new rank
+        const nextMaxQi = calculateMaxQi(nextRank, 1);
 
         return {
           view: GameView.DASHBOARD,
@@ -274,23 +263,20 @@ export const useGameStore = create<GameState>()(
 
       upgradeCave: () => {
         const state = get();
-        const nextLevelIdx = state.player.caveLevel; // Current level is index + 1
-        if (nextLevelIdx >= CAVE_LEVELS.length) return false; // Max level
+        const nextLevelIdx = state.player.caveLevel; 
+        if (nextLevelIdx >= CAVE_LEVELS.length) return false;
 
-        const config = CAVE_LEVELS[nextLevelIdx]; // Config for NEXT level
+        const config = CAVE_LEVELS[nextLevelIdx]; 
         if (!config) return false;
 
-        // Check Stones
         if (state.player.spiritStones < config.upgradeCost.stones) return false;
 
-        // Check Materials
         if (config.upgradeCost.materials) {
           for (const [matId, count] of Object.entries(config.upgradeCost.materials)) {
             if ((state.player.materials[matId] || 0) < count) return false;
           }
         }
 
-        // Consume Resources
         const newStones = state.player.spiritStones - config.upgradeCost.stones;
         const newMaterials = { ...state.player.materials };
         if (config.upgradeCost.materials) {
@@ -315,23 +301,19 @@ export const useGameStore = create<GameState>()(
         const recipe = RECIPES.find(r => r.id === recipeId);
         if (!recipe) return 'FAIL';
 
-        // Check Cost
         if (state.player.spiritStones < recipe.baseCost) return 'NO_RES';
         for (const [matId, count] of Object.entries(recipe.materials)) {
             if ((state.player.materials[matId] || 0) < count) return 'NO_RES';
         }
 
-        // Consume
         const newStones = state.player.spiritStones - recipe.baseCost;
         const newMaterials = { ...state.player.materials };
         for (const [matId, count] of Object.entries(recipe.materials)) {
             newMaterials[matId] -= count;
         }
 
-        // Roll Success
         const isSuccess = Math.random() < recipe.successRate;
         
-        // Update State
         const newInventory = { ...state.player.inventory };
         if (isSuccess) {
             newInventory[recipe.resultItemId] = (newInventory[recipe.resultItemId] || 0) + 1;
@@ -343,7 +325,6 @@ export const useGameStore = create<GameState>()(
                 spiritStones: newStones,
                 materials: newMaterials,
                 inventory: newInventory,
-                // Failure increases Inner Demon slightly
                 innerDemon: isSuccess ? state.player.innerDemon : Math.min(100, state.player.innerDemon + 5)
             }
         });
@@ -358,15 +339,10 @@ export const useGameStore = create<GameState>()(
         const now = Date.now();
         const diffSeconds = (now - state.player.lastLoginTime) / 1000;
 
-        // Check and fix migration issues
         let updates: Partial<PlayerStats> = {};
-        
         if (!state.player.maxQi || state.player.maxQi < 100) {
-            // Recalculate maxQi if it looks wrong (migration fix)
             updates.maxQi = calculateMaxQi(state.player.rank, state.player.level);
         }
-
-        // Ensure level is at least 1
         if(!state.player.level) updates.level = 1;
 
         if (Object.keys(updates).length > 0) {
@@ -392,7 +368,7 @@ export const useGameStore = create<GameState>()(
       }
     }),
     {
-      name: 'xiuxian_save_v4', // Bump version to reset/migrate if needed
+      name: 'xiuxian_save_v4',
       storage: createJSONStorage(() => localStorage),
     }
   )
