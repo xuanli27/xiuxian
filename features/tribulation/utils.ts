@@ -1,5 +1,5 @@
 import type { Rank } from '@prisma/client'
-import type { TribulationType, TribulationDifficulty, TribulationWave } from './types'
+import { TribulationType, TribulationDifficulty, type TribulationWave } from './types'
 
 /**
  * 渡劫系统工具函数
@@ -71,7 +71,13 @@ export function generateTribulationWaves(rank: Rank): TribulationWave[] {
   const totalWaves = calculateTribulationWaves(rank)
   const waves: TribulationWave[] = []
 
-  const types: TribulationType[] = ['THUNDER', 'FIRE', 'WIND', 'HEART_DEMON', 'HEAVENLY']
+  const types: TribulationType[] = [
+    TribulationType.THUNDER,
+    TribulationType.FIRE,
+    TribulationType.WIND,
+    TribulationType.HEART_DEMON,
+    TribulationType.HEAVENLY
+  ]
 
   for (let i = 1; i <= totalWaves; i++) {
     const typeIndex = Math.floor((i - 1) / 2) % types.length

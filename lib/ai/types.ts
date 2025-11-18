@@ -35,3 +35,11 @@ export type AIAdvice = {
   content: string
   priority: 'high' | 'medium' | 'low'
 }
+
+export type QuizQuestion = {
+  question: string
+  options: string[]
+  correctAnswer: number
+  correctIndex: number
+  explanation?: string
+}

@@ -69,47 +69,66 @@ export const MAIN_NAV: NavItem[] = [
   },
 ]
 
-// 游戏内导航
+// 游戏内主导航 - 精简为4个核心功能
 export const GAME_NAV: NavItem[] = [
   {
-    title: '仪表盘',
+    title: '紫府',
     href: '/dashboard',
-    icon: '📊',
-  },
-  {
-    title: '任务',
-    href: '/tasks',
-    icon: '📝',
+    icon: '🏔️',
+    description: '你的修仙世界中心',
   },
   {
     title: '修炼',
     href: '/cultivation',
     icon: '🧘',
+    description: '闭关修炼，提升境界',
+  },
+  {
+    title: '任务',
+    href: '/tasks',
+    icon: '📜',
+    description: '历练任务，获取资源',
   },
   {
     title: '洞府',
     href: '/cave',
-    icon: '🏠',
+    icon: '🏡',
+    description: '经营洞府，炼制丹药',
   },
+]
+
+// 次级功能 - 通过仪表盘入口访问
+export const SECONDARY_NAV: NavItem[] = [
   {
-    title: '背包',
+    title: '百宝囊',
     href: '/inventory',
     icon: '🎒',
+    description: '查看物品和装备',
   },
   {
-    title: '门派',
+    title: '仙欲宗',
     href: '/sect',
-    icon: '🏛️',
+    icon: '⛩️',
+    description: '宗门事务与贡献',
   },
   {
-    title: '渡劫',
+    title: '天机阁',
+    href: '/leaderboard',
+    icon: '📊',
+    description: '修士排行榜',
+  },
+  {
+    title: '天劫',
     href: '/tribulation',
     icon: '⚡',
+    description: '渡劫突破境界',
+    badge: '危险',
   },
   {
-    title: '排行榜',
-    href: '/leaderboard',
-    icon: '🏆',
+    title: '奇遇',
+    href: '/events',
+    icon: '✨',
+    description: '随机事件与机缘',
   },
 ]
 
@@ -161,6 +180,7 @@ export const QUICK_ACTIONS: NavItem[] = [
 export const NAVIGATION = {
   main: MAIN_NAV,
   game: GAME_NAV,
+  secondary: SECONDARY_NAV,
   user: USER_NAV,
   quickActions: QUICK_ACTIONS,
 }

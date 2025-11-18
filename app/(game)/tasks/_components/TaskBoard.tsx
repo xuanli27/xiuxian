@@ -10,10 +10,11 @@ import { MessageCleanerGame } from './minigames/MessageCleanerGame';
 import { BattleArena } from './minigames/BattleArena';
 import { getPlayerTasks } from '@/features/tasks/queries';
 import { generateMultipleAITasks, completeTask } from '@/features/tasks/actions';
-import type { Task, Player } from '@prisma/client';
+import type { Task as PrismaTask, Player } from '@prisma/client';
+import type { Task } from '@/types/game';
 
 interface Props {
-  initialTasks: Task[]
+  initialTasks: PrismaTask[]
   player: Player
 }
 
@@ -22,11 +23,23 @@ export const TaskBoard: React.FC<Props> = ({ initialTasks, player }) => {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  const { data: tasks, isLoading: isLoadingTasks } = useQuery({
+  const { data: prismaTasks, isLoading: isLoadingTasks } = useQuery({
     queryKey: ['tasks', player.id],
     queryFn: () => getPlayerTasks(player.id),
     initialData: initialTasks,
   });
+
+  // 转换为 Task 类型
+  const tasks: Task[] = prismaTasks?.map((t: PrismaTask) => ({
+    ...t,
+    reward: {
+      qi: t.rewardQi,
+      contribution: t.rewardContribution,
+      stones: t.rewardStones,
+      materials: []
+    },
+    completed: t.status === 'COMPLETED'
+  })) || [];
 
   const generateTasks = useMutation({
     mutationFn: () => generateMultipleAITasks([player.rank, player.sectRank], 4),

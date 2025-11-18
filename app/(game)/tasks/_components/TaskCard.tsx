@@ -1,10 +1,10 @@
 import React from 'react';
-import { Task } from '@/types';
+import { Task } from '@/types/game';
 import { Scroll, Briefcase, Swords, Link2, CheckCircle, Coins } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import clsx from 'clsx';
 
-export const TaskCard = ({ task, onStart }: { task: Task, onStart: () => void }) => {
+export const TaskCard = ({ task, onStart }: { task: Task; onStart: () => void }) => {
   const getIcon = () => {
     switch(task.type) {
       case 'GAME': return <Briefcase className="text-primary-400" size={24} />;

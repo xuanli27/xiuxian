@@ -32,7 +32,10 @@ export async function processEventChoice(input: ProcessEventChoiceInput) {
   // 更新玩家状态
   await prisma.player.update({
     where: { id: playerId },
-    data: mockResult.playerUpdates,
+    data: {
+      qi: mockResult.playerUpdates.qi,
+      spiritStones: mockResult.playerUpdates.spiritStones,
+    },
   });
 
   // 记录事件日志

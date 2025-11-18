@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { prisma } from '@/lib/db/prisma'
 import { redis } from '@/lib/db/redis'
+import { Rank } from '@prisma/client'
 import type { LeaderboardCategory } from './types'
 import type { LeaderboardEntry, LeaderboardResponse, Season } from './types'
 
@@ -174,10 +175,15 @@ export const getPlayerRank = cache(async (
 
   switch (category) {
     case 'REALM':
+      // 获取所有境界更高的玩家
+      const rankOrder = Object.values(Rank)
+      const currentRankIndex = rankOrder.indexOf(player.rank)
+      const higherRanks = rankOrder.slice(currentRankIndex + 1)
+      
       higherRanked = await prisma.player.count({
         where: {
           OR: [
-            { rank: { gt: player.rank } },
+            { rank: { in: higherRanks } },
             { rank: player.rank, level: { gt: player.level } }
           ]
         }

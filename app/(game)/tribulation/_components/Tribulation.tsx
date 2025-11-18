@@ -130,7 +130,7 @@ export const Tribulation: React.FC<Props> = ({ player }) => {
           </h3>
 
           <div className="space-y-3">
-            {q?.options.map((opt, idx) => {
+            {q?.options.map((opt: string, idx: number) => {
               let btnClass = "bg-surface-700 hover:bg-surface-600 border-transparent text-content-200";
               if (feedback !== null) {
                  if (idx === q.correctIndex) btnClass = "bg-primary-600/20 border-primary-500 text-primary-500";

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MOYU_SITES } from '@/data/constants';
-import { Compass, Globe, ExternalLink, CheckCircle, Loader2, Briefcase, BrainCircuit, Code, TrendingUp, X } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Compass, Globe, ExternalLink, CheckCircle, Loader2, Briefcase, BrainCircuit, Code, TrendingUp, X, Eye, Languages, Sparkles } from 'lucide-react';
+import { Button, Modal } from '@/components/ui';
 import { StockMarketGame } from './minigames/StockMarketGame';
 import { LogicPuzzleGame } from './minigames/LogicPuzzleGame';
 import clsx from 'clsx';
@@ -10,6 +10,10 @@ export const NavigationStation = ({ duration, onComplete }: { duration: number, 
   const [timer, setTimer] = useState(duration);
   const [currentSite, setCurrentSite] = useState<{name:string, url:string, gameType?: string} | null>(null);
   const [activeTimer, setActiveTimer] = useState(false);
+  const [customUrl, setCustomUrl] = useState('');
+  const [isEditingUrl, setIsEditingUrl] = useState(false);
+  const [aiResult, setAiResult] = useState<{type: 'summary' | 'translate', content: string} | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     let interval: any;
@@ -29,7 +33,81 @@ export const NavigationStation = ({ duration, onComplete }: { duration: number, 
   const handleBack = () => {
       setCurrentSite(null);
       setActiveTimer(false);
-      setTimer(duration); 
+      setTimer(duration);
+      setIsEditingUrl(false);
+  };
+
+  const handleCustomUrlSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (customUrl.trim()) {
+        let url = customUrl.trim();
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          url = 'https://' + url;
+        }
+        setCurrentSite({ name: '自定义网址', url, gameType: 'TIMER' });
+        setActiveTimer(true);
+        setIsEditingUrl(false);
+      }
+  };
+
+  const handleDivineScan = async () => {
+      if (!currentSite?.url) return;
+      setIsProcessing(true);
+      try {
+        const response = await fetch('/api/ai/process-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: currentSite.url, action: 'summarize' })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          alert(data.error || '神念扫视失败');
+          setIsProcessing(false);
+          return;
+        }
+        
+        setAiResult({
+          type: 'summary',
+          content: `【神念扫视结果】\n\n你从这篇文章中领悟到了以下精要：\n\n${data.result}\n\n（消耗灵气：${data.cost}）`
+        });
+        setIsProcessing(false);
+      } catch (error) {
+        console.error('神念扫视失败:', error);
+        alert('神念扫视失败，请稍后重试');
+        setIsProcessing(false);
+      }
+  };
+
+  const handleDecipherText = async () => {
+      if (!currentSite?.url) return;
+      setIsProcessing(true);
+      try {
+        const response = await fetch('/api/ai/process-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: currentSite.url, action: 'translate' })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          alert(data.error || '破译古籍失败');
+          setIsProcessing(false);
+          return;
+        }
+        
+        setAiResult({
+          type: 'translate',
+          content: `【破译古籍结果】\n\n${data.result}\n\n（消耗灵气：${data.cost}）`
+        });
+        setIsProcessing(false);
+      } catch (error) {
+        console.error('破译古籍失败:', error);
+        alert('破译古籍失败，请稍后重试');
+        setIsProcessing(false);
+      }
   };
 
   const renderControlPanel = () => {
@@ -82,10 +160,31 @@ export const NavigationStation = ({ duration, onComplete }: { duration: number, 
             <X size={20} />
          </button>
          
-         <div className="flex-1 bg-surface-950 rounded-lg px-4 py-2.5 text-xs text-content-400 font-mono truncate border border-border-base flex items-center shadow-inner">
-            <Globe size={14} className="mr-2 text-primary-400" />
-            <span className="truncate select-all">{currentSite?.url || "moyu://portal (摸鱼导航站)"}</span>
-         </div>
+         {isEditingUrl ? (
+           <form onSubmit={handleCustomUrlSubmit} className="flex-1 flex items-center gap-2">
+             <div className="flex-1 bg-surface-950 rounded-lg px-4 py-2.5 border border-amber-500/50 flex items-center shadow-inner">
+               <Globe size={14} className="mr-2 text-amber-400" />
+               <input
+                 type="text"
+                 value={customUrl}
+                 onChange={(e) => setCustomUrl(e.target.value)}
+                 placeholder="输入网址..."
+                 className="flex-1 bg-transparent text-xs text-content-100 font-mono outline-none"
+                 autoFocus
+               />
+             </div>
+             <Button type="submit" size="sm" variant="primary">前往</Button>
+             <Button type="button" size="sm" variant="outline" onClick={() => setIsEditingUrl(false)}>取消</Button>
+           </form>
+         ) : (
+           <div
+             className="flex-1 bg-surface-950 rounded-lg px-4 py-2.5 text-xs text-content-400 font-mono truncate border border-border-base flex items-center shadow-inner cursor-pointer hover:border-amber-500/30 transition-colors"
+             onClick={() => !currentSite && setIsEditingUrl(true)}
+           >
+             <Globe size={14} className="mr-2 text-primary-400" />
+             <span className="truncate select-all">{currentSite?.url || "moyu://portal (点击输入自定义网址)"}</span>
+           </div>
+         )}
 
          {/* Timer display for generic sites */}
          {currentSite && (!currentSite.gameType || currentSite.gameType === 'TIMER') && (
@@ -100,6 +199,31 @@ export const NavigationStation = ({ duration, onComplete }: { duration: number, 
                     </span>
                 )}
             </div>
+         )}
+         
+         {currentSite && currentSite.gameType === 'TIMER' && (
+           <>
+             <Button
+               size="sm"
+               variant="outline"
+               onClick={handleDivineScan}
+               disabled={isProcessing}
+               className="border-amber-500/30 hover:border-amber-500 hover:bg-amber-500/10 text-amber-400"
+               icon={<Eye size={16} />}
+             >
+               神念扫视 (50灵气)
+             </Button>
+             <Button
+               size="sm"
+               variant="outline"
+               onClick={handleDecipherText}
+               disabled={isProcessing}
+               className="border-purple-500/30 hover:border-purple-500 hover:bg-purple-500/10 text-purple-400"
+               icon={<Languages size={16} />}
+             >
+               破译古籍 (100灵气)
+             </Button>
+           </>
          )}
          
          {currentSite && (
@@ -160,6 +284,33 @@ export const NavigationStation = ({ duration, onComplete }: { duration: number, 
              </div>
          )}
       </div>
+
+      {/* AI结果展示弹窗 */}
+      <Modal
+        isOpen={!!aiResult}
+        onClose={() => setAiResult(null)}
+        title={aiResult?.type === 'summary' ? '神念扫视' : '破译古籍'}
+        icon={aiResult?.type === 'summary' ? <Eye size={18} className="text-amber-400" /> : <Languages size={18} className="text-purple-400" />}
+      >
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 p-6 rounded-xl border-2 border-amber-500/30 relative overflow-hidden">
+          {/* 装饰性背景 */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-orange-500/5 rounded-full blur-2xl" />
+          
+          {/* 内容 */}
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-4 text-amber-600 dark:text-amber-400">
+              <Sparkles size={16} />
+              <span className="text-sm font-bold">灵光一现</span>
+            </div>
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <pre className="whitespace-pre-wrap font-serif text-slate-700 dark:text-slate-300 leading-relaxed">
+                {aiResult?.content}
+              </pre>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

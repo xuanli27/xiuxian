@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db/prisma'
+import { TaskType, TaskDifficulty, TaskStatus, TaskCategory } from '@prisma/client'
 import { cache } from 'react'
 
 /**
@@ -20,7 +21,7 @@ export const getAllTasks = cache(async (limit: number = 50) => {
 /**
  * 根据类型获取任务
  */
-export const getTasksByType = cache(async (type: string) => {
+export const getTasksByType = cache(async (type: TaskType) => {
   return await prisma.task.findMany({
     where: { type },
     orderBy: {
@@ -32,7 +33,7 @@ export const getTasksByType = cache(async (type: string) => {
 /**
  * 根据难度获取任务
  */
-export const getTasksByDifficulty = cache(async (difficulty: string) => {
+export const getTasksByDifficulty = cache(async (difficulty: TaskDifficulty) => {
   return await prisma.task.findMany({
     where: { difficulty },
     orderBy: {
@@ -58,7 +59,7 @@ export const getPlayerTasks = cache(async (playerId: number) => {
  */
 export const getPlayerTasksByStatus = cache(async (
   playerId: number,
-  status: string
+  status: TaskStatus
 ) => {
   return await prisma.task.findMany({
     where: {
@@ -81,7 +82,7 @@ export const getTaskById = cache(async (id: string) => {
       player: {
         select: {
           name: true,
-          realm: true,
+          rank: true,
         }
       }
     }
@@ -95,8 +96,8 @@ export const getDailyTasks = cache(async (playerId: number) => {
   return await prisma.task.findMany({
     where: {
       playerId,
-      type: 'DAILY',
-      status: { in: ['PENDING', 'IN_PROGRESS'] }
+      category: TaskCategory.DAILY,
+      status: { in: [TaskStatus.PENDING, TaskStatus.IN_PROGRESS] }
     },
     orderBy: {
       createdAt: 'desc'
@@ -111,8 +112,8 @@ export const getWeeklyTasks = cache(async (playerId: number) => {
   return await prisma.task.findMany({
     where: {
       playerId,
-      type: 'WEEKLY',
-      status: { in: ['PENDING', 'IN_PROGRESS'] }
+      category: TaskCategory.WEEKLY,
+      status: { in: [TaskStatus.PENDING, TaskStatus.IN_PROGRESS] }
     },
     orderBy: {
       createdAt: 'desc'
@@ -127,7 +128,7 @@ export const getAchievementTasks = cache(async (playerId: number) => {
   return await prisma.task.findMany({
     where: {
       playerId,
-      type: 'ACHIEVEMENT'
+      category: TaskCategory.ACHIEVEMENT
     },
     orderBy: {
       status: 'asc',

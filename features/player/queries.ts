@@ -25,7 +25,7 @@ export const getPlayerByUserId = cache(async (userId: string) => {
 /**
  * 根据玩家ID获取玩家
  */
-export const getPlayerById = cache(async (id: string) => {
+export const getPlayerById = cache(async (id: number) => {
   return await prisma.player.findUnique({
     where: { id },
     include: {
@@ -46,7 +46,7 @@ export const getAllPlayers = cache(async (limit: number = 100) => {
   return await prisma.player.findMany({
     take: limit,
     orderBy: {
-      experience: 'desc'
+      level: 'desc'
     },
     include: {
       user: {
@@ -62,11 +62,11 @@ export const getAllPlayers = cache(async (limit: number = 100) => {
 /**
  * 根据境界筛选玩家
  */
-export const getPlayersByRealm = cache(async (realm: string) => {
+export const getPlayersByRealm = cache(async (rank: string) => {
   return await prisma.player.findMany({
-    where: { realm },
+    where: { rank: rank as any },
     orderBy: {
-      experience: 'desc'
+      level: 'desc'
     },
     include: {
       user: {
@@ -82,9 +82,20 @@ export const getPlayersByRealm = cache(async (realm: string) => {
 /**
  * 获取玩家统计数据
  */
-export const getPlayerStats = cache(async (playerId: string) => {
+export const getPlayerStats = cache(async (playerId: number) => {
   const player = await prisma.player.findUnique({
-    where: { id: playerId }
+    where: { id: playerId },
+    select: {
+      id: true,
+      name: true,
+      rank: true,
+      level: true,
+      qi: true,
+      maxQi: true,
+      spiritRoot: true,
+      spiritStones: true,
+      contribution: true,
+    }
   })
   
   if (!player) return null
@@ -92,24 +103,12 @@ export const getPlayerStats = cache(async (playerId: string) => {
   return {
     id: player.id,
     name: player.name,
-    realm: player.realm,
-    experience: player.experience,
-    currency: player.currency,
+    rank: player.rank,
+    level: player.level,
+    qi: player.qi,
+    maxQi: player.maxQi,
     spiritRoot: player.spiritRoot,
-    level: calculateLevel(player.experience),
-    stats: {
-      health: player.health,
-      mana: player.mana,
-      attack: player.attack,
-      defense: player.defense,
-    }
+    spiritStones: player.spiritStones,
+    contribution: player.contribution,
   }
 })
-
-/**
- * 辅助函数:计算等级
- */
-function calculateLevel(exp: number): number {
-  // 简单的等级计算:每100经验1级
-  return Math.floor(exp / 100) + 1
-}

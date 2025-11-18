@@ -48,8 +48,8 @@ export const SectHall: React.FC<Props> = ({ player }) => {
 
   return (
     <div className="pb-24">
-      <PageHeader 
-        title={sectInfo?.name} 
+      <PageHeader
+        title={sectInfo?.name || '宗门大殿'}
         subtitle={sectInfo?.description}
         icon={<Building2 size={24} />}
         rightContent={
