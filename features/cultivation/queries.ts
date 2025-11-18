@@ -1,3 +1,25 @@
+import { getCurrentUserId } from '@/lib/auth/guards'
+
+/**
+ * 获取当前玩家的境界信息(客户端调用)
+ */
+export async function getCurrentPlayerRealmInfo(): Promise<RealmInfo | null> {
+  const userId = await getCurrentUserId()
+  const player = await prisma.player.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      rank: true,
+      qi: true,
+      maxQi: true,
+    }
+  })
+
+  if (!player) return null
+
+  return getPlayerRealmInfo(player.id)
+}
+
 import { cache } from 'react'
 import { prisma } from '@/lib/db/prisma'
 import type { Rank } from '@prisma/client'

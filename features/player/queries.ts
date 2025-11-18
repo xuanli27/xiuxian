@@ -1,6 +1,29 @@
 import { prisma } from '@/lib/db/prisma'
 import { cache } from 'react'
 
+import { getCurrentUserId } from '@/lib/auth/guards'
+
+/**
+ * 获取当前登录用户的玩家信息
+ * 这个函数不使用React cache, 适合在客户端通过React Query调用
+ */
+export async function getCurrentPlayer() {
+  const userId = await getCurrentUserId()
+  // 确保在没有玩家时返回 null 而不是抛出错误
+  const player = await prisma.player.findUnique({
+    where: { userId },
+    include: {
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  })
+  return player
+}
+
 /**
  * Player查询函数 (使用React cache优化)
  */

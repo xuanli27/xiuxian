@@ -1,12 +1,10 @@
 import { auth } from '@/lib/auth/auth'
 import { redirect } from 'next/navigation'
-import { getPlayerByUserId } from '@/features/player/queries'
-import { getPlayerRealmInfo } from '@/features/cultivation/queries'
-import { getPlayerTasks } from '@/features/tasks/queries'
 import { Dashboard } from './_components/Dashboard'
 
 /**
  * Dashboard页面 - 显示玩家修炼进度和境界信息
+ * 数据获取已移至客户端组件,通过React Query管理
  */
 export default async function DashboardPage() {
   const session = await auth()
@@ -15,20 +13,6 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  const player = await getPlayerByUserId(session.user.id!)
-  
-  if (!player) {
-    redirect('/onboarding')
-  }
-
-  const realmInfo = await getPlayerRealmInfo(player.id)
-  const tasks = await getPlayerTasks(player.id)
-
-  return (
-    <Dashboard
-      initialPlayer={player}
-      initialRealmInfo={realmInfo}
-      initialTasks={tasks}
-    />
-  )
+  // 简单的认证检查,数据获取交给客户端的Dashboard组件
+  return <Dashboard />
 }
