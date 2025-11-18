@@ -22,15 +22,13 @@ export default async function DashboardPage() {
   }
 
   const realmInfo = await getPlayerRealmInfo(player.id)
-  const tasks = await getPlayerTasks(player.id.toString())
+  const tasks = await getPlayerTasks(player.id)
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Dashboard
-        initialPlayer={player}
-        initialRealmInfo={realmInfo}
-        initialTasks={tasks}
-      />
-    </div>
+    <Dashboard
+      initialPlayer={player}
+      initialRealmInfo={realmInfo}
+      initialTasks={tasks}
+    />
   )
 }

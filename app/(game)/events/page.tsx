@@ -76,15 +76,11 @@ export default function EventsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-gray-500">加载中...</div>
-      </div>
-    );
+    return <div className="text-center text-gray-500">加载中...</div>;
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <>
       <PageHeader
         title="修仙事件"
         subtitle="在修仙路上，每个选择都会影响你的命运"
@@ -108,6 +104,6 @@ export default function EventsPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

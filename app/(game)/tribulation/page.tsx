@@ -20,10 +20,8 @@ export default async function TribulationPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Tribulation
-        player={player}
-      />
-    </div>
+    <Tribulation
+      player={player}
+    />
   )
 }

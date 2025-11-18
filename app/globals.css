@@ -33,6 +33,20 @@
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+:root.light {
+  --color-surface-950: #fef3c7;
+  --color-surface-900: #fde68a;
+  --color-surface-800: #fcd34d;
+  --color-surface-700: #fbbf24;
+  --color-surface-600: #f59e0b;
+  
+  --color-content-100: #1e293b;
+  --color-content-200: #334155;
+  --color-content-400: #64748b;
+  
+  --color-border-base: #fbbf24;
+}
+
 body {
   font-family: var(--font-serif);
   background-color: var(--color-surface-950);

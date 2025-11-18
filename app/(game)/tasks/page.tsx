@@ -21,14 +21,12 @@ export default async function TasksPage() {
   }
 
   // 获取玩家任务列表
-  const tasks = await getPlayerTasks(player.id.toString())
+  const tasks = await getPlayerTasks(player.id)
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <TaskBoard 
-        initialTasks={tasks}
-        player={player}
-      />
-    </div>
+    <TaskBoard
+      initialTasks={tasks}
+      player={player}
+    />
   )
 }

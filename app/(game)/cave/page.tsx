@@ -26,7 +26,7 @@ export default async function CavePage() {
   if (!cave) {
     // 如果洞府不存在,可以显示一个创建洞府的界面
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
+      <div className="text-center">
         <h1 className="text-3xl font-bold">你还没有洞府</h1>
         <p className="mt-4 text-content-400">快去开辟一个属于你的洞天福地吧!</p>
         {/* TODO: 添加创建洞府的组件 */}
@@ -35,11 +35,9 @@ export default async function CavePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <CaveManager
-        initialCave={cave}
-        player={player}
-      />
-    </div>
+    <CaveManager
+      initialCave={cave}
+      player={player}
+    />
   )
 }

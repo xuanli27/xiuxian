@@ -20,10 +20,8 @@ export default async function SectPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <SectHall
-        player={player}
-      />
-    </div>
+    <SectHall
+      player={player}
+    />
   )
 }

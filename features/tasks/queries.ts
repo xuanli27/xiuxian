@@ -44,7 +44,7 @@ export const getTasksByDifficulty = cache(async (difficulty: string) => {
 /**
  * 获取玩家的任务
  */
-export const getPlayerTasks = cache(async (playerId: string) => {
+export const getPlayerTasks = cache(async (playerId: number) => {
   return await prisma.task.findMany({
     where: { playerId },
     orderBy: {
@@ -57,7 +57,7 @@ export const getPlayerTasks = cache(async (playerId: string) => {
  * 根据状态获取玩家任务
  */
 export const getPlayerTasksByStatus = cache(async (
-  playerId: string,
+  playerId: number,
   status: string
 ) => {
   return await prisma.task.findMany({
@@ -91,7 +91,7 @@ export const getTaskById = cache(async (id: string) => {
 /**
  * 获取每日任务
  */
-export const getDailyTasks = cache(async (playerId: string) => {
+export const getDailyTasks = cache(async (playerId: number) => {
   return await prisma.task.findMany({
     where: {
       playerId,
@@ -107,7 +107,7 @@ export const getDailyTasks = cache(async (playerId: string) => {
 /**
  * 获取每周任务
  */
-export const getWeeklyTasks = cache(async (playerId: string) => {
+export const getWeeklyTasks = cache(async (playerId: number) => {
   return await prisma.task.findMany({
     where: {
       playerId,
@@ -123,7 +123,7 @@ export const getWeeklyTasks = cache(async (playerId: string) => {
 /**
  * 获取成就任务
  */
-export const getAchievementTasks = cache(async (playerId: string) => {
+export const getAchievementTasks = cache(async (playerId: number) => {
   return await prisma.task.findMany({
     where: {
       playerId,

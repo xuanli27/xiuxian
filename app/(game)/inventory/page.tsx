@@ -24,11 +24,9 @@ export default async function InventoryPage() {
   const items = await getPlayerInventory(player.id)
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Inventory 
-        initialItems={items}
-        player={player}
-      />
-    </div>
+    <Inventory
+      initialItems={items}
+      player={player}
+    />
   )
 }

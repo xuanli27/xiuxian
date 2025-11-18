@@ -24,7 +24,7 @@ export const TaskBoard: React.FC<Props> = ({ initialTasks, player }) => {
 
   const { data: tasks, isLoading: isLoadingTasks } = useQuery({
     queryKey: ['tasks', player.id],
-    queryFn: () => getPlayerTasks(player.id.toString()),
+    queryFn: () => getPlayerTasks(player.id),
     initialData: initialTasks,
   });
 
