@@ -2,23 +2,25 @@
 
 import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Zap, Database, ShieldAlert, Coins, Home, ArrowUpCircle } from 'lucide-react';
+import { Zap, Database, ShieldAlert, Coins, Home } from 'lucide-react';
 import { Button, Card } from '../ui';
 import { SpiritCoreVisualizer } from './SpiritCoreVisualizer';
+import { QuickAccessCard } from './QuickAccessCard';
 import clsx from 'clsx';
 import { getPlayerRealmInfo } from '@/features/cultivation/queries';
 import { startMeditation, attemptBreakthrough } from '@/features/cultivation/actions';
 import { getPlayerByUserId } from '@/features/player/queries';
 import { REALM_CONFIG } from '@/config/game';
-import type { Player } from '@prisma/client';
+import type { Player, Task } from '@prisma/client';
 import type { RealmInfo } from '@/features/cultivation/types';
 
 interface Props {
   initialPlayer: Player
   initialRealmInfo: RealmInfo | null
+  initialTasks: Task[]
 }
 
-export const Dashboard: React.FC<Props> = ({ initialPlayer, initialRealmInfo }) => {
+export const Dashboard: React.FC<Props> = ({ initialPlayer, initialRealmInfo, initialTasks }) => {
   const { data: player } = useQuery({
     queryKey: ['player', initialPlayer.id],
     queryFn: () => getPlayerByUserId(initialPlayer.userId),
@@ -49,6 +51,12 @@ export const Dashboard: React.FC<Props> = ({ initialPlayer, initialRealmInfo }) 
 
   return (
     <div className="space-y-6">
+      {/* 快捷入口 */}
+      <QuickAccessCard
+        currentTasks={initialTasks}
+        hasActiveEvent={false}
+      />
+      
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 perspective-1000">
         <StatCard icon={<Database size={16} />} label="境界" value={displayRank} color="bg-blue-500/20 text-blue-400" delay={0} />

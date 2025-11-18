@@ -1,26 +1,22 @@
-import { Task } from '@prisma/client'
+import type { Task, TaskType, TaskStatus, TaskDifficulty, TaskCategory } from '@prisma/client'
 
 /**
  * 任务相关类型定义
  */
 
+export type { Task, TaskType, TaskStatus, TaskDifficulty, TaskCategory }
+
 export type TaskWithPlayer = Task & {
   player: {
     name: string
-    realm: string
+    rank: string
   }
 }
 
-export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
-
-export type TaskType = 'DAILY' | 'WEEKLY' | 'ACHIEVEMENT'
-
-export type TaskDifficulty = 'EASY' | 'MEDIUM' | 'HARD'
-
 export type TaskRewards = {
-  experience: number
-  currency: number
-  items?: string[]
+  qi: number
+  contribution: number
+  stones: number
 }
 
 export type TaskProgress = {
@@ -29,11 +25,17 @@ export type TaskProgress = {
   percentage: number
 }
 
-export type TaskCreate = {
+export type TaskCreateInput = {
   title: string
   description: string
   type: TaskType
   difficulty: TaskDifficulty
-  rewards: TaskRewards
-  requirements?: Record<string, any>
+  category: TaskCategory
+  rewardQi: number
+  rewardContribution: number
+  rewardStones: number
+  duration: number
+  url?: string
+  quiz?: any
+  enemy?: any
 }

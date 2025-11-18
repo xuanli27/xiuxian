@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("POSTGRES_URL")
+  url      = env("DATABASE_URL")
 }
 
 // ==================== 用户系统 ====================
@@ -126,6 +126,8 @@ model Player {
   // Relations
   tasks             Task[]
   leaderboardEntry  Leaderboard[]
+  eventLogs         EventLog[]
+  statusEffects     PlayerStatusEffect[]
   
   @@index([rank, level])
   @@map("players")
@@ -146,14 +148,28 @@ enum TaskStatus {
   FAILED
 }
 
+enum TaskDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum TaskCategory {
+  DAILY
+  WEEKLY
+  ACHIEVEMENT
+}
+
 model Task {
-  id          Int    @id @default(autoincrement())
+  id          String @id @default(cuid())
   playerId    Int
   player      Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
   
   title       String
   description String
   type        TaskType
+  difficulty  TaskDifficulty @default(EASY)
+  category    TaskCategory   @default(DAILY)
   
   // 奖励
   rewardQi          Int
@@ -170,6 +186,7 @@ model Task {
   createdAt   DateTime  @default(now())
   startedAt   DateTime?
   completedAt DateTime?
+  acceptedAt  DateTime?
   
   @@index([playerId, status])
   @@map("tasks")
@@ -194,4 +211,51 @@ model Leaderboard {
   @@unique([playerId, season])
   @@index([season, score])
   @@map("leaderboard")
+}
+
+// ==================== 事件流系统 ====================
+
+enum EventType {
+  MAJOR
+  MINOR
+  CHAIN
+}
+
+model EventLog {
+  id        String   @id @default(cuid())
+  playerId  Int
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  
+  eventId   String
+  eventType EventType
+  title     String
+  description String @db.Text
+  
+  choiceId  String?
+  choiceText String?
+  
+  result    Json
+  
+  createdAt DateTime @default(now())
+  
+  @@index([playerId, createdAt])
+  @@map("event_logs")
+}
+
+model PlayerStatusEffect {
+  id        String   @id @default(cuid())
+  playerId  Int
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  
+  effectId  String
+  name      String
+  description String
+  
+  modifiers Json
+  
+  startedAt DateTime @default(now())
+  expiresAt DateTime?
+  
+  @@index([playerId, expiresAt])
+  @@map("player_status_effects")
 }

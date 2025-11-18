@@ -7,7 +7,10 @@ export default auth((req) => {
                       req.nextUrl.pathname.startsWith('/tasks') ||
                       req.nextUrl.pathname.startsWith('/sect') ||
                       req.nextUrl.pathname.startsWith('/inventory') ||
-                      req.nextUrl.pathname.startsWith('/cave');
+                      req.nextUrl.pathname.startsWith('/cave') ||
+                      req.nextUrl.pathname.startsWith('/cultivation') ||
+                      req.nextUrl.pathname.startsWith('/leaderboard') ||
+                      req.nextUrl.pathname.startsWith('/tribulation');
   
   if (isGameRoute && !isLoggedIn) {
     return NextResponse.redirect(new URL('/login', req.url));

@@ -3,11 +3,11 @@
 import { prisma } from '@/lib/db/prisma'
 import { getCurrentUserId } from '@/lib/auth/guards'
 import { revalidatePath } from 'next/cache'
-import { 
-  createPlayerSchema, 
+import {
+  createPlayerSchema,
   updatePlayerSchema,
-  addExperienceSchema,
-  addCurrencySchema 
+  addQiSchema,
+  addSpiritStonesSchema
 } from './schemas'
 import { calculateExpForLevel } from '@/lib/game/formulas'
 
@@ -39,13 +39,14 @@ export async function createPlayer(input: { name: string; spiritRoot: string }) 
       userId,
       name: validated.name,
       spiritRoot: validated.spiritRoot,
-      realm: 'LIANQI',
-      experience: 0,
-      currency: 0,
-      health: 100,
-      mana: 100,
-      attack: 10,
-      defense: 5,
+      rank: 'QI_REFINING', // 使用正确的 rank 字段和枚举值
+      level: 1,
+      qi: 0,
+      maxQi: 100,
+      innerDemon: 0,
+      contribution: 0,
+      spiritStones: 0,
+      caveLevel: 1,
     }
   })
   
@@ -56,11 +57,13 @@ export async function createPlayer(input: { name: string; spiritRoot: string }) 
 /**
  * 更新玩家信息
  */
-export async function updatePlayer(input: { 
+export async function updatePlayer(input: {
   name?: string
-  realm?: string
-  experience?: number
-  currency?: number
+  rank?: string
+  level?: number
+  qi?: number
+  maxQi?: number
+  spiritStones?: number
 }) {
   const userId = await getCurrentUserId()
   
@@ -80,26 +83,31 @@ export async function updatePlayer(input: {
 /**
  * 增加经验值
  */
-export async function addExperience(playerId: string, amount: number) {
+export async function addQi(playerId: number, amount: number) {
   const userId = await getCurrentUserId()
   
   // 验证输入
-  const validated = addExperienceSchema.parse({ playerId, amount })
+  const validated = addQiSchema.parse({ playerId, amount })
   
   // 获取玩家
   const player = await prisma.player.findUnique({
-    where: { id: validated.playerId, userId }
+    where: { id: validated.playerId }
   })
+  
+  // 验证玩家所有权
+  if (player && player.userId !== userId) {
+    throw new Error('无权操作此玩家')
+  }
   
   if (!player) {
     throw new Error('玩家不存在')
   }
   
-  // 增加经验
-  const newExp = player.experience + validated.amount
+  // 增加灵气
+  const newQi = player.qi + validated.amount
   const updated = await prisma.player.update({
     where: { id: validated.playerId },
-    data: { experience: newExp }
+    data: { qi: Math.min(newQi, player.maxQi) }
   })
   
   revalidatePath('/')
@@ -109,17 +117,26 @@ export async function addExperience(playerId: string, amount: number) {
 /**
  * 增加货币
  */
-export async function addCurrency(playerId: string, amount: number) {
+export async function addSpiritStones(playerId: number, amount: number) {
   const userId = await getCurrentUserId()
   
   // 验证输入
-  const validated = addCurrencySchema.parse({ playerId, amount })
+  const validated = addSpiritStonesSchema.parse({ playerId, amount })
   
-  // 更新货币
+  // 获取玩家验证所有权
+  const existingPlayer = await prisma.player.findUnique({
+    where: { id: validated.playerId }
+  })
+  
+  if (!existingPlayer || existingPlayer.userId !== userId) {
+    throw new Error('玩家不存在或无权操作')
+  }
+  
+  // 更新灵石
   const player = await prisma.player.update({
-    where: { id: validated.playerId, userId },
+    where: { id: validated.playerId },
     data: {
-      currency: {
+      spiritStones: {
         increment: validated.amount
       }
     }
@@ -132,11 +149,11 @@ export async function addCurrency(playerId: string, amount: number) {
 /**
  * 境界突破
  */
-export async function levelUpRealm(playerId: string) {
+export async function levelUpRealm(playerId: number) {
   const userId = await getCurrentUserId()
   
   const player = await prisma.player.findUnique({
-    where: { id: playerId, userId }
+    where: { id: playerId }
   })
   
   if (!player) {

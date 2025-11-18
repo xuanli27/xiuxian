@@ -1,29 +1,48 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  --font-xianxia: 'Ma Shan Zheng', cursive;
+  --font-cute: 'ZCOOL KuaiLe', cursive;
+  --font-serif: 'Noto Serif SC', serif;
+  
+  --color-surface-950: #020617;
+  --color-surface-900: #0f172a;
+  --color-surface-800: #1e293b;
+  --color-surface-700: #334155;
+  --color-surface-600: #1e293b;
+  
+  --color-content-100: #f1f5f9;
+  --color-content-200: #cbd5e1;
+  --color-content-400: #94a3b8;
+  
+  --color-primary-400: #34d399;
+  --color-primary-500: #10b981;
+  --color-primary-600: #059669;
+  
+  --color-secondary-400: #fbbf24;
+  --color-secondary-600: #d97706;
+  
+  --color-danger-400: #fb7185;
+  --color-danger-600: #e11d48;
+  
+  --color-border-base: #334155;
+  --color-border-highlight: #10b981;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-serif);
+  background-color: var(--color-surface-950);
+  color: var(--color-content-100);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
+/* 3D & Animation Utils */
+.perspective-1000 { perspective: 1000px; }
+.preserve-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+.rotate-y-180 { transform: rotateY(180deg); }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border-base); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-content-400); }
