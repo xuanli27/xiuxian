@@ -23,10 +23,14 @@
   --color-secondary-600: #d97706;
   
   --color-danger-400: #fb7185;
+  --color-danger-500: #f43f5e;
   --color-danger-600: #e11d48;
   
   --color-border-base: #334155;
   --color-border-highlight: #10b981;
+  
+  --animate-spin-slow: spin 3s linear infinite;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 body {

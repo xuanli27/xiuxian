@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth/auth'
 import { redirect } from 'next/navigation'
 import { getPlayerByUserId } from '@/features/player/queries'
 import { getPlayerTasks } from '@/features/tasks/queries'
-import { TaskBoard } from '@/components/tasks/TaskBoard'
+import { TaskBoard } from './_components/TaskBoard'
 
 /**
  * Tasks页面 - 任务大厅

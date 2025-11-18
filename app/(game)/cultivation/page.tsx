@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth/auth'
 import { redirect } from 'next/navigation'
 import { getPlayerByUserId } from '@/features/player/queries'
 import { getPlayerRealmInfo, getCultivationStats } from '@/features/cultivation/queries'
-import { Cultivation } from '@/components/cultivation/Cultivation'
+import { Cultivation } from './_components/Cultivation'
 
 /**
  * Cultivation页面 - 修炼场

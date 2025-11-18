@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth/auth'
 import { redirect } from 'next/navigation'
 import { getLeaderboard } from '@/features/leaderboard/queries'
 import { LeaderboardCategory } from '@/features/leaderboard/types'
-import { Leaderboard } from '@/components/leaderboard/Leaderboard'
+import { Leaderboard } from './_components/Leaderboard'
 
 /**
  * Leaderboard页面 - 排行榜

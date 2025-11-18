@@ -1,9 +1,9 @@
 import { generateText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { getAIModel } from '../config';
 import type { GameEvent, EventChoice } from '@/types/events';
 import type { EventContext } from '@/features/events/types';
 
-const MODEL = google('gemini-2.0-flash-exp');
+const MODEL = getAIModel();
 
 const SYSTEM_PROMPT = `你是"摸鱼修仙录"游戏的事件生成器。这是一个修仙题材的放置游戏，核心玩法是事件流驱动。
 

@@ -166,3 +166,38 @@ export async function levelUpRealm(playerId: number) {
   revalidatePath('/')
   return { success: true, message: '境界突破成功!' }
 }
+
+/**
+ * 更新玩家进度（用于本地状态同步）
+ */
+export async function updatePlayerProgress(input: {
+  playerId: number
+  qi: number
+  innerDemon: number
+  spiritStones: number
+  caveLevel: number
+}) {
+  const userId = await getCurrentUserId()
+  
+  // 验证玩家所有权
+  const player = await prisma.player.findUnique({
+    where: { id: input.playerId }
+  })
+  
+  if (!player || player.userId !== userId) {
+    throw new Error('无权操作此玩家')
+  }
+  
+  // 更新进度
+  const updated = await prisma.player.update({
+    where: { id: input.playerId },
+    data: {
+      qi: input.qi,
+      innerDemon: input.innerDemon,
+      spiritStones: input.spiritStones,
+      caveLevel: input.caveLevel,
+    }
+  })
+  
+  return { success: true, player: updated }
+}

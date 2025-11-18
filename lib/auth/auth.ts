@@ -1,12 +1,45 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
+import Credentials from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/lib/db/prisma';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
+    Credentials({
+      name: 'Email',
+      credentials: {
+        email: { label: "邮箱", type: "email", placeholder: "your@email.com" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email) return null;
+        
+        const email = credentials.email as string;
+        
+        // 查找或创建用户
+        let user = await prisma.user.findUnique({
+          where: { email }
+        });
+        
+        if (!user) {
+          user = await prisma.user.create({
+            data: {
+              email,
+              name: email.split('@')[0],
+            }
+          });
+        }
+        
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+        };
+      }
+    }),
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
@@ -21,9 +54,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: '/login',
   },
   callbacks: {
-    async session({ session, user }) {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        
+        // 检查是否有 Player 记录
+        const player = await prisma.player.findUnique({
+          where: { userId: user.id }
+        });
+        
+        token.hasPlayer = !!player;
+      }
+      return token;
+    },
+    async session({ session, token }) {
       if (session.user) {
-        session.user.id = user.id;
+        session.user.id = token.id as string;
+        session.user.hasPlayer = token.hasPlayer as boolean;
       }
       return session;
     },
@@ -34,7 +81,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   session: {
-    strategy: 'database',
+    strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 });

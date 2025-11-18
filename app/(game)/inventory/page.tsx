@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth/auth'
 import { redirect } from 'next/navigation'
 import { getPlayerByUserId } from '@/features/player/queries'
 import { getPlayerInventory } from '@/features/inventory/queries'
-import { Inventory } from '@/components/inventory/Inventory'
+import { Inventory } from './_components/Inventory'
 
 /**
  * Inventory页面 - 背包

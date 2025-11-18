@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth/auth'
 import { redirect } from 'next/navigation'
 import { getPlayerByUserId } from '@/features/player/queries'
-import { Tribulation } from '@/components/tribulation/Tribulation'
+import { Tribulation } from './_components/Tribulation'
 
 /**
  * Tribulation页面 - 渡劫

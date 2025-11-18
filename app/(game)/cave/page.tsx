@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth/auth'
 import { redirect } from 'next/navigation'
 import { getPlayerByUserId } from '@/features/player/queries'
 import { getPlayerCave } from '@/features/cave/queries'
-import { CaveManager } from '@/components/cave/CaveManager'
+import { CaveManager } from './_components/CaveManager'
 
 /**
  * Cave页面 - 洞府

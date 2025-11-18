@@ -1,8 +1,7 @@
 import { streamText, generateText } from 'ai'
-import { google } from '@ai-sdk/google'
+import { getAIModel } from './config'
 
-// AI模型配置
-const MODEL = google('gemini-2.0-flash-exp')
+const MODEL = getAIModel()
 
 /**
  * 流式生成文本

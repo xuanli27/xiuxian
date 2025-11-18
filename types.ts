@@ -36,18 +36,18 @@ export interface RankInfo {
 }
 
 export enum SectRank {
-  OUTER = '外门牛马',
-  INNER = '内门摸鱼人',
-  ELITE = '真传薪水小偷',
-  ELDER = '划水长老',
-  MASTER = '咸鱼宗主'
+  OUTER = 'OUTER',      // 外门弟子
+  INNER = 'INNER',      // 内门弟子
+  ELITE = 'ELITE',      // 真传弟子
+  ELDER = 'ELDER',      // 长老
+  MASTER = 'MASTER'     // 掌门
 }
 
 export enum SpiritRootType {
-  HEAVEN = '天灵根 (S级人才)',
-  EARTH = '地灵根 (A级人才)',
-  HUMAN = '人灵根 (普招)',
-  WASTE = '废灵根 (外包)'
+  HEAVEN = 'HEAVEN',      // 天灵根 - 单属性灵根，万中无一
+  EARTH = 'EARTH',        // 异灵根 - 双属性灵根，百中挑一
+  HUMAN = 'HUMAN',        // 真灵根 - 三属性灵根，十中有一
+  WASTE = 'WASTE'         // 杂灵根 - 四属性及以上，资质平庸
 }
 
 export enum EquipmentSlot {

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { getPlayerByUserId } from '@/features/player/queries'
 import { getPlayerRealmInfo } from '@/features/cultivation/queries'
 import { getPlayerTasks } from '@/features/tasks/queries'
-import { Dashboard } from '@/components/dashboard/Dashboard'
+import { Dashboard } from './_components/Dashboard'
 
 /**
  * Dashboard页面 - 显示玩家修炼进度和境界信息

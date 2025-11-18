@@ -7,6 +7,7 @@ import {
   claimLeaderboardRewardSchema,
 } from './schemas'
 import { getLeaderboardRewards, getPlayerRank, getCurrentSeason } from './queries'
+import { invalidateLeaderboardCache } from './utils'
 import type { LeaderboardCategory } from './types'
 
 /**
@@ -103,6 +104,9 @@ export async function claimLeaderboardReward(input: {
     }
   })
   
+  // 清除相关缓存
+  await invalidateLeaderboardCache(validated.category, validated.season)
+  
   revalidatePath('/leaderboard')
   
   return {
@@ -117,8 +121,8 @@ export async function claimLeaderboardReward(input: {
  * 更新排行榜数据(定时任务调用)
  */
 export async function updateLeaderboardData() {
-  // TODO: 实现定时更新排行榜数据的逻辑
-  // 这个函数应该由定时任务调用,用于缓存排行榜数据
+  // 清除所有排行榜缓存
+  await invalidateLeaderboardCache()
   
   revalidatePath('/leaderboard')
   

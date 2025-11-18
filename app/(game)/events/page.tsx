@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { EventDisplay } from '@/components/events/EventDisplay';
+import { EventDisplay } from './_components/EventDisplay';
 import { processEventChoice } from '@/features/events/actions';
-import { generateNextEvent } from '@/lib/ai/generators/event-generator';
 import { buildEventContext } from '@/features/events/utils';
 import type { GameEvent, EventResult } from '@/types/events';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -33,7 +32,14 @@ export default function EventsPage() {
         recentEvents: [],
       };
 
-      const event = await generateNextEvent(mockContext);
+      const response = await fetch('/api/ai/generate-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mockContext),
+      });
+      
+      if (!response.ok) throw new Error('生成事件失败');
+      const event = await response.json();
       setCurrentEvent(event);
     } catch (error) {
       console.error('加载事件失败:', error);

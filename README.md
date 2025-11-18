@@ -10,8 +10,6 @@
 
 它将传统的**修仙玄幻**题材与现代**职场生存**（摸鱼文化）完美融合。玩家作为一名刚入职 "仙欲宗"（Xianyu Sect）的实习生，需要在应对老板（宗主）的绩效考核（天劫）的同时，利用一切办公资源悄悄积累灵气，最终达成 "财务自由"（飞升）的终极目标。
 
-本项目是一个纯前端单页应用 (SPA)，利用 Google Gemini API 生成动态的随机事件、吐槽反馈和职场天劫题目，保证每次游玩的体验都充满新鲜感。
-
 ---
 
 ## 🚀 核心功能
@@ -40,30 +38,6 @@
 
 ### 6. 🎒 百宝囊 (Inventory)
 - 管理和使用购买的道具，道具具有实际的游戏数值影响（回血、降压）。
-
----
-
-## 🛠️ 技术栈
-
-*   **Framework**: React 19 + TypeScript
-*   **Styling**: Tailwind CSS v4 (Utilizing new 3D transforms & animations)
-*   **State Management**: Zustand (with `persist` middleware for local storage)
-*   **AI Integration**: Google Gemini API (`gemini-2.5-flash` model) for dynamic content generation.
-*   **Visualization**: HTML5 Canvas (Particles & Drawing), CSS3 3D Transforms.
-*   **Icons**: Lucide React.
-
----
-
-## 📦 快速开始
-
-1.  **配置 API Key**:
-    本项目依赖 Google Gemini API。请确保环境变量中包含有效的 `API_KEY`。
-
-2.  **安装依赖**:
-    *(本项目设计为无构建步骤或通过简单的静态服务器运行，依赖项通过 Import Map 加载)*
-
-3.  **运行**:
-    直接启动本地开发服务器指向 `index.html` 即可。
 
 ---
 

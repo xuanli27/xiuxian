@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { prisma } from '@/lib/db/prisma'
+import { redis } from '@/lib/db/redis'
 import type { LeaderboardCategory } from './types'
 import type { LeaderboardEntry, LeaderboardResponse, Season } from './types'
 
@@ -35,6 +36,20 @@ export const getLeaderboard = cache(async (
   pageSize: number = 20
 ): Promise<LeaderboardResponse> => {
   const currentSeason = season || (await getCurrentSeason()).id
+  
+  // 如果 Redis 可用，尝试从缓存读取
+  if (redis) {
+    const cacheKey = `leaderboard:${category}:${currentSeason}:${page}:${pageSize}`
+    
+    try {
+      const cached = await redis.get(cacheKey)
+      if (cached) {
+        return JSON.parse(cached)
+      }
+    } catch (error) {
+      console.error('Redis read error:', error)
+    }
+  }
   
   let orderBy: any = {}
   let selectFields: any = {
@@ -117,7 +132,7 @@ export const getLeaderboard = cache(async (
     return entry
   })
 
-  return {
+  const result = {
     category,
     season: currentSeason,
     entries,
@@ -125,6 +140,19 @@ export const getLeaderboard = cache(async (
     totalPages,
     totalEntries,
   }
+  
+  // 如果 Redis 可用，写入缓存，TTL 5分钟
+  if (redis) {
+    const cacheKey = `leaderboard:${category}:${currentSeason}:${page}:${pageSize}`
+    
+    try {
+      await redis.setex(cacheKey, 300, JSON.stringify(result))
+    } catch (error) {
+      console.error('Redis write error:', error)
+    }
+  }
+
+  return result
 })
 
 /**
