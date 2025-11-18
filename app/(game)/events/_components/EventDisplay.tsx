@@ -1,63 +1,67 @@
-'use client'
+'use client';
 
-import { GameEvent } from '@/types/events'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { useState } from 'react';
+import { useEvent } from '@/features/events/queries';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
-interface Props {
-  event: GameEvent
-  onChoiceSelect: (choiceId: string) => void
-  isProcessing: boolean
-}
+export function EventDisplay() {
+  const { event, isGenerating, triggerNewEvent, processChoice, isProcessing, result } = useEvent();
+  const [showResult, setShowResult] = useState(false);
 
-export function EventDisplay({ event, onChoiceSelect, isProcessing }: Props) {
+  const handleGenerateEvent = () => {
+    setShowResult(false);
+    triggerNewEvent();
+  };
+
+  const handleChoice = (choiceId: string) => {
+    if (event) {
+      processChoice({ event, choiceId }, {
+        onSuccess: () => {
+          setShowResult(true);
+        }
+      });
+    }
+  };
+
   return (
-    <div className="max-w-2xl mx-auto">
-      <Card className="p-6">
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-bold text-content-900 mb-2">
-              {event.content.title}
-            </h2>
-            <p className="text-content-600 leading-relaxed">
-              {event.content.description}
-            </p>
-          </div>
+    <Card className="p-6">
+      <h2 className="text-2xl font-bold mb-4">奇遇</h2>
+      
+      {!event && !isGenerating && (
+        <div className="text-center">
+          <p className="mb-4">此地似乎风平浪静，要不要四处探索一番，看看有何机缘？</p>
+          <Button onClick={handleGenerateEvent}>探索奇遇</Button>
+        </div>
+      )}
 
-          {event.content.imageUrl && (
-            <div className="rounded-lg overflow-hidden">
-              <img 
-                src={event.content.imageUrl} 
-                alt={event.content.title}
-                className="w-full h-48 object-cover"
-              />
-            </div>
-          )}
+      {isGenerating && <p>正在探索中...</p>}
 
-          <div className="space-y-3 pt-4">
-            <h3 className="text-lg font-semibold text-content-800">
-              你的选择：
-            </h3>
-            {event.choices.map((choice) => (
-              <Button
-                key={choice.id}
-                onClick={() => onChoiceSelect(choice.id)}
-                disabled={isProcessing}
-                variant="outline"
-                className="w-full text-left justify-start h-auto py-3 px-4"
-              >
-                <span className="font-medium">{choice.text}</span>
+      {event && !showResult && (
+        <div>
+          <h3 className="text-xl font-semibold mb-2">{event.title}</h3>
+          <p className="mb-4 whitespace-pre-wrap">{event.description}</p>
+          <div className="flex flex-col space-y-2">
+            {event.choices.map((choice: { id: string; text: string }) => (
+              <Button key={choice.id} onClick={() => handleChoice(choice.id)} disabled={isProcessing}>
+                {choice.text}
               </Button>
             ))}
           </div>
-
-          {isProcessing && (
-            <div className="text-center text-content-500 pt-2">
-              处理中...
-            </div>
-          )}
         </div>
-      </Card>
-    </div>
-  )
+      )}
+
+      {isProcessing && <p>正在抉择中...</p>}
+
+      {showResult && result && (
+        <div>
+          <h3 className="text-xl font-semibold mb-2">尘埃落定</h3>
+          <p className="mb-4 whitespace-pre-wrap">{result.result.narration}</p>
+          <Button onClick={handleGenerateEvent} disabled={isGenerating}>
+            继续探索
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
 }

@@ -1,32 +1,34 @@
-'use server';
+'use client';
 
-import { prisma } from '@/lib/db/prisma';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { generateNewEvent, processEventChoice } from './actions';
+import type { AIEvent } from './types';
 
-export async function getCurrentEvent(playerId: number) {
-  // TODO: 实现获取当前事件的逻辑
-  // 可以从缓存、会话或数据库中获取
-  return null;
-}
+export const useEvent = () => {
+  const queryClient = useQueryClient();
 
-export async function getEventHistory(playerId: number, limit = 10) {
-  return await prisma.eventLog.findMany({
-    where: { playerId },
-    orderBy: { createdAt: 'desc' },
-    take: limit,
+  const { data: eventData, isFetching: isGenerating, refetch: triggerNewEvent } = useQuery({
+    queryKey: ['newEvent'],
+    queryFn: () => generateNewEvent(),
+    enabled: false, // Initially disabled, triggered manually
+    refetchOnWindowFocus: false,
   });
-}
 
-export async function getActiveStatusEffects(playerId: number) {
-  const now = new Date();
-  
-  return await prisma.playerStatusEffect.findMany({
-    where: {
-      playerId,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: now } },
-      ],
+  const processChoiceMutation = useMutation({
+    mutationFn: (variables: { event: AIEvent, choiceId: string }) => processEventChoice(variables),
+    onSuccess: () => {
+      // Invalidate player data to reflect changes
+      queryClient.invalidateQueries({ queryKey: ['player'] });
     },
-    orderBy: { startedAt: 'desc' },
   });
-}
+
+  return {
+    event: eventData?.event,
+    isGenerating,
+    triggerNewEvent,
+    processChoice: processChoiceMutation.mutate,
+    isProcessing: processChoiceMutation.isPending,
+    result: processChoiceMutation.data,
+    error: processChoiceMutation.error,
+  };
+};

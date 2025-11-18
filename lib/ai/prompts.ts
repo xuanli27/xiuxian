@@ -1,104 +1,63 @@
-/**
- * AI提示词模板库
- */
+import { zodToJsonSchema } from 'zod-to-json-schema';
+import { aiGeneratedEventSchema } from '@/features/events/schemas';
+import { aiGeneratedTaskSchema } from '@/features/tasks/schemas';
 
-export const PROMPTS = {
-  /**
-   * 任务生成提示词
-   */
-  GENERATE_TASK: (context: string) => `
-你是一个修仙世界的任务发布者。基于以下上下文生成一个修仙任务:
+// ==================== Schemas to JSON Schemas ====================
 
-上下文: ${context}
+const eventJsonSchema = zodToJsonSchema(aiGeneratedEventSchema, "aiGeneratedEventSchema");
+const taskJsonSchema = zodToJsonSchema(aiGeneratedTaskSchema, "aiGeneratedTaskSchema");
 
-请生成一个JSON格式的任务,包含以下字段:
-- title: 任务标题(简短有趣)
-- description: 任务描述(100-200字)
-- type: 任务类型(DAILY/WEEKLY/ACHIEVEMENT)
-- difficulty: 难度(EASY/MEDIUM/HARD)
-- rewards: 奖励对象 {experience: number, currency: number, items?: string[]}
+// ==================== Event Prompts ====================
 
-要求:
-1. 符合修仙世界观
-2. 任务要有趣且有挑战性
-3. 奖励合理平衡
-4. 只返回JSON,不要其他文字
-`,
+export const GENERATE_STRUCTURED_EVENT = (playerContext: object) => `
+你是一个富有想象力的游戏事件设计师，正在为一个名为“摸鱼修仙录”的放置类 RPG 设计随机事件。
+游戏的世界观是：在一个现代化的修仙世界里，修行者们伪装成普通的上班族，通过在工作中“摸鱼”来修炼。他们的修炼与现代职场生活、网络文化和技术梗紧密结合。
 
-  /**
-   * 剧情生成提示词
-   */
-  GENERATE_STORY: (playerRealm: string, event: string) => `
-你是一个修仙小说作者。基于以下信息生成一段剧情:
+你的任务是根据玩家的当前状态，为他/她设计一个符合世界观的、有趣的、结构化的随机事件。
 
-玩家境界: ${playerRealm}
-事件: ${event}
+**玩家当前状态:**
+\`\`\`json
+${JSON.stringify(playerContext, null, 2)}
+\`\`\`
 
-要求:
-1. 50-100字的精彩剧情描述
-2. 符合修仙世界观和境界设定
-3. 语言优美,引人入胜
-4. 只返回剧情文本
-`,
+**事件设计要求:**
+1.  **贴合世界观**: 事件应该巧妙地将修仙概念与现代职场或网络文化结合。例如：“在一个陈旧的服务器（洞府）中发现了一段上古代码（功法秘籍）”、“被邀请参加一个跨部门的项目复盘会（论道大会）”。
+2.  **提供选择**: 事件必须提供 2 到 4 个有意义的选择，每个选择都会带来不同的结果。
+3.  **明确的结果**: 每个选择的结果应该是具体的，例如增加/减少修为(qi)、灵石(spiritStones)、心魔(innerDemon)，或者获得一件物品(item)，或者获得一个状态效果(statusEffect)。
+4.  **结构化输出**: 你必须严格按照下面的 JSON schema 来返回事件数据。
 
-  /**
-   * 名称生成提示词
-   */
-  GENERATE_NAME: (type: 'technique' | 'item' | 'npc', theme?: string) => `
-你是一个修仙世界的命名大师。请生成一个${type === 'technique' ? '功法' : type === 'item' ? '物品' : 'NPC'}的名称。
+**输出 JSON Schema:**
+\`\`\`json
+${JSON.stringify(eventJsonSchema, null, 2)}
+\`\`\`
 
-${theme ? `主题: ${theme}` : ''}
+请严格按照以上要求，仅返回一个符合 schema 的 JSON 对象，不要包含任何额外的解释或注释。
+`;
 
-要求:
-1. 名称要有修仙风格
-2. 4-8个字
-3. 朗朗上口
-4. 只返回名称
-`,
 
-  /**
-   * 对话生成提示词
-   */
-  GENERATE_DIALOGUE: (npcRole: string, context: string) => `
-你扮演一个修仙世界的${npcRole}。基于以下情境生成对话:
+// ==================== Task Prompts ====================
 
-情境: ${context}
+export const GENERATE_STRUCTURED_TASK = (playerContext: object) => `
+你是一个富有想象力的游戏设计师，正在为一个名为“摸鱼修仙录”的放置类 RPG 设计任务。
+游戏的世界观是：在一个现代化的修仙世界里，修行者们伪装成普通的上班族，通过在工作中“摸鱼”来修炼。他们的修炼与现代职场生活、网络文化和技术梗紧密结合。
 
-要求:
-1. 符合角色身份和修仙世界观
-2. 对话自然流畅
-3. 20-50字
-4. 只返回对话内容
-`,
+你的任务是根据玩家的当前状态，为他/她设计一个符合世界观的、有趣的、结构化的新任务。
 
-  /**
-   * 建议生成提示词
-   */
-  GENERATE_ADVICE: (playerData: string) => `
-你是一个修仙世界的前辈高人。基于玩家当前状态给出修炼建议:
+**玩家当前状态:**
+\`\`\`json
+${JSON.stringify(playerContext, null, 2)}
+\`\`\`
 
-玩家状态: ${playerData}
+**任务设计要求:**
+1.  **贴合世界观**: 任务应该巧妙地将修仙概念与现代职场或网络文化结合。例如：“修复一个上古阵法（遗留代码库）”、“参加一场跨部门的论道大会（项目复盘会）”、“从网络巨兽（大型网站）那里窃取数据灵气”。
+2.  **难度适中**: 根据玩家的境界(rank)和等级(level)设计合理的任务难度和奖励。境界越高，任务应该越复杂，奖励也越丰厚。
+3.  **多样性**: 任务类型可以是“摸鱼链接(LINK)”（浏览特定网页）、“小游戏(GAME)”（完成一个逻辑谜题或问答）或“心魔挑战(BATTLE)”（一场基于数据的战斗）。
+4.  **结构化输出**: 你必须严格按照下面的 JSON schema 来返回任务数据。
 
-要求:
-1. 给出3-5条具体建议
-2. 包含修炼方向、资源获取、风险提示等
-3. 符合修仙世界观
-4. 每条建议20-30字
-5. 返回JSON数组格式: ["建议1", "建议2", ...]
-`
-} as const
+**输出 JSON Schema:**
+\`\`\`json
+${JSON.stringify(taskJsonSchema, null, 2)}
+\`\`\`
 
-/**
- * 构建系统提示词
- */
-export function buildSystemPrompt(role: string): string {
-  const systemPrompts = {
-    taskGenerator: '你是一个专业的游戏任务设计师,擅长创造有趣且平衡的任务。',
-    storyWriter: '你是一个资深的修仙小说作者,擅长创造引人入胜的剧情。',
-    nameCreator: '你是一个修仙世界的命名大师,擅长创造有意境的名称。',
-    npcActor: '你是一个经验丰富的角色扮演者,能够完美演绎各种角色。',
-    advisor: '你是一个智慧的修仙前辈,善于给出恰当的建议。'
-  }
-  
-  return systemPrompts[role as keyof typeof systemPrompts] || '你是一个有用的助手。'
-}
+请严格按照以上要求，仅返回一个符合 schema 的 JSON 对象，不要包含任何额外的解释或注释。
+`;

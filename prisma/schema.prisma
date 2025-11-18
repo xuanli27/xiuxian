@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("POSTGRES_PRISMA_URL")
 }
 
 // ==================== 用户系统 ====================
@@ -128,9 +128,44 @@ model Player {
   leaderboardEntry  Leaderboard[]
   eventLogs         EventLog[]
   statusEffects     PlayerStatusEffect[]
-  
+  sectMembership    SectMember?
+
   @@index([rank, level])
   @@map("players")
+}
+
+// ==================== 宗门系统 ====================
+
+model Sect {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  
+  level       Int      @default(1)
+  reputation  Int      @default(0)
+  
+  leaderId    Int      @unique
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     SectMember[]
+
+  @@map("sects")
+}
+
+model SectMember {
+  id        String   @id @default(cuid())
+  playerId  Int      @unique
+  sectId    String
+  
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  sect      Sect     @relation(fields: [sectId], references: [id], onDelete: Cascade)
+
+  rank      SectRank @default(OUTER)
+  joinedAt  DateTime @default(now())
+
+  @@map("sect_members")
 }
 
 // ==================== 任务系统 ====================
@@ -194,22 +229,44 @@ model Task {
 
 // ==================== 排行榜 ====================
 
+model Season {
+  id        String   @id
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)
+
+  leaderboardEntries Leaderboard[]
+
+  @@map("seasons")
+}
+
 model Leaderboard {
-  id         Int      @id @default(autoincrement())
-  playerId   Int
-  player     Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  playerId     Int
+  seasonId     String
   
-  playerName String
-  rank       Rank
-  level      Int
-  contribution Int
-  score      Int
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  season       Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  playerName   String
+  playerAvatar String?
+  rank         Rank
+  level        Int
   
-  season     String
-  updatedAt  DateTime @updatedAt
-  
-  @@unique([playerId, season])
-  @@index([season, score])
+  // Scores for different categories
+  realmScore        BigInt @default(0) // 境界得分
+  powerScore        BigInt @default(0) // 战力得分 (临时用贡献)
+  wealthScore       BigInt @default(0) // 财富得分
+  contributionScore BigInt @default(0) // 贡献得分
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([playerId, seasonId])
+  @@index([seasonId, realmScore])
+  @@index([seasonId, powerScore])
+  @@index([seasonId, wealthScore])
+  @@index([seasonId, contributionScore])
   @@map("leaderboard")
 }
 

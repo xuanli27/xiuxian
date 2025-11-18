@@ -1,44 +1,26 @@
-import { z } from 'zod'
-
-/**
- * 任务数据验证Schema
- */
-
-export const createTaskSchema = z.object({
-  title: z.string().min(2, '标题至少2个字符').max(100, '标题最多100个字符'),
-  description: z.string().min(10, '描述至少10个字符').max(500, '描述最多500个字符'),
-  type: z.enum(['LINK', 'GAME', 'BATTLE']),
-  difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']),
-  category: z.enum(['DAILY', 'WEEKLY', 'ACHIEVEMENT']),
-  rewardQi: z.number().int().min(0),
-  rewardContribution: z.number().int().min(0),
-  rewardStones: z.number().int().min(0),
-  duration: z.number().int().min(1),
-  url: z.string().url().optional(),
-  quiz: z.any().optional(),
-  enemy: z.any().optional(),
-})
+import { z } from 'zod';
 
 export const acceptTaskSchema = z.object({
-  taskId: z.string().cuid(),
-})
+  taskId: z.string(),
+});
 
 export const completeTaskSchema = z.object({
-  taskId: z.string().cuid(),
-})
+  taskId: z.string(),
+  result: z.any().optional(),
+});
 
-export const updateTaskProgressSchema = z.object({
-  taskId: z.string().uuid(),
-  progress: z.record(z.any()),
-})
-
-export const generateTaskSchema = z.object({
-  context: z.string().min(10),
-  count: z.number().int().min(1).max(10).default(3),
-})
-
-export type CreateTaskInput = z.infer<typeof createTaskSchema>
-export type AcceptTaskInput = z.infer<typeof acceptTaskSchema>
-export type CompleteTaskInput = z.infer<typeof completeTaskSchema>
-export type UpdateTaskProgressInput = z.infer<typeof updateTaskProgressSchema>
-export type GenerateTaskInput = z.infer<typeof generateTaskSchema>
+export const aiGeneratedTaskSchema = z.object({
+  title: z.string().describe("任务的标题, 简短且明确"),
+  description: z.string().describe("任务的详细描述, 说明背景和要求"),
+  type: z.enum(['LINK', 'GAME', 'BATTLE']).describe("任务类型 (LINK, GAME, BATTLE)"),
+  difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).describe("任务难度 (EASY, MEDIUM, HARD)"),
+  category: z.enum(['DAILY', 'WEEKLY', 'ACHIEVEMENT']).describe("任务分类 (DAILY, WEEKLY, ACHIEVEMENT)"),
+  rewardQi: z.number().int().positive().describe("奖励的修为值"),
+  rewardContribution: z.number().int().positive().describe("奖励的贡献点"),
+  rewardStones: z.number().int().positive().describe("奖励的灵石"),
+  duration: z.number().int().positive().describe("任务的建议完成时间（分钟）"),
+  // For specific task types
+  url: z.string().url().optional().describe("如果type是LINK, 需要提供一个URL"),
+  enemy: z.record(z.any()).optional().describe("如果type是BATTLE, 需要提供敌人的数据"),
+  quiz: z.record(z.any()).optional().describe("如果type是GAME, 并且是问答游戏, 需要提供问题数据"),
+});

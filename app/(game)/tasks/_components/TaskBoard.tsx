@@ -9,7 +9,7 @@ import { NavigationStation } from './NavigationStation';
 import { MessageCleanerGame } from './minigames/MessageCleanerGame';
 import { BattleArena } from './minigames/BattleArena';
 import { getPlayerTasks } from '@/features/tasks/queries';
-import { generateMultipleAITasks, completeTask } from '@/features/tasks/actions';
+import { generateNewTaskForPlayer, completeTask } from '@/features/tasks/actions';
 import type { Task as PrismaTask, Player } from '@prisma/client';
 import type { Task } from '@/types/game';
 
@@ -42,7 +42,7 @@ export const TaskBoard: React.FC<Props> = ({ initialTasks, player }) => {
   })) || [];
 
   const generateTasks = useMutation({
-    mutationFn: () => generateMultipleAITasks([player.rank, player.sectRank], 4),
+    mutationFn: () => generateNewTaskForPlayer(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', player.id] });
     },
@@ -63,7 +63,7 @@ export const TaskBoard: React.FC<Props> = ({ initialTasks, player }) => {
 
   const handleComplete = (success: boolean) => {
     if (activeTask && success) {
-      complete.mutate(activeTask.id);
+      complete.mutate(String(activeTask.id));
       setTimeout(() => { setShowModal(false); setActiveTask(null); }, 500);
     } else {
       setShowModal(false);

@@ -1,43 +1,36 @@
-import { generateAIText } from '../client'
-import { PROMPTS, buildSystemPrompt } from '../prompts'
-import type { AITaskGeneration } from '../types'
+import { generateAIText } from '@/lib/ai/client';
+import { GENERATE_STRUCTURED_TASK } from '@/lib/ai/prompts';
+import { aiGeneratedTaskSchema } from '@/features/tasks/schemas';
 
 /**
- * AI任务生成器
+ * Generates the next task for a player using the AI model.
+ * It includes retry logic to handle potential parsing or validation errors.
+ *
+ * @param playerContext - The current state of the player to be sent to the AI.
+ * @param maxRetries - The maximum number of times to retry on failure.
+ * @returns A promise that resolves to a validated AI-generated task.
  */
-export async function generateTask(context: string): Promise<AITaskGeneration> {
-  const prompt = PROMPTS.GENERATE_TASK(context)
-  const systemPrompt = buildSystemPrompt('taskGenerator')
-  
-  const response = await generateAIText(prompt)
-  
-  try {
-    // 清理可能的markdown代码块标记
-    const cleaned = response.replace(/```json\n?|\n?```/g, '').trim()
-    return JSON.parse(cleaned) as AITaskGeneration
-  } catch (error) {
-    console.error('Failed to parse AI task generation:', error)
-    throw new Error('任务生成失败,请重试')
-  }
-}
-
-/**
- * 批量生成任务
- */
-export async function generateMultipleTasks(
-  contexts: string[],
-  count: number = 3
-): Promise<AITaskGeneration[]> {
-  const tasks: AITaskGeneration[] = []
-  
-  for (let i = 0; i < Math.min(count, contexts.length); i++) {
+export async function generateNextTask(playerContext: object, maxRetries: number = 3) {
+  for (let i = 0; i < maxRetries; i++) {
     try {
-      const task = await generateTask(contexts[i])
-      tasks.push(task)
+      const prompt = GENERATE_STRUCTURED_TASK(playerContext);
+      const rawResponse = await generateAIText(prompt);
+
+      // Clean the response by removing markdown code blocks
+      const jsonString = rawResponse.replace(/```json\n|```/g, '').trim();
+      
+      const parsedTask = JSON.parse(jsonString);
+
+      // Validate the parsed object against our Zod schema
+      return aiGeneratedTaskSchema.parse(parsedTask);
+
     } catch (error) {
-      console.error(`Failed to generate task ${i + 1}:`, error)
+      console.error(`AI task generation attempt ${i + 1} failed.`, { error, playerContext });
+      if (i === maxRetries - 1) {
+        throw new Error('Failed to generate a valid task from AI after multiple retries.');
+      }
     }
   }
-  
-  return tasks
+  // This line should be unreachable
+  throw new Error('Exited task generation loop unexpectedly.');
 }

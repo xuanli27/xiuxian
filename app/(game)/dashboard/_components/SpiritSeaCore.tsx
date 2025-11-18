@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { useGameStore } from '@/stores/game-store'
+import { usePlayer } from '@/hooks/use-player';
 import Link from 'next/link'
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const SpiritSeaCore: React.FC<Props> = ({ onMeditate, canBreakthrough }) => {
-  const player = useGameStore((state) => state.player)
+  const { player } = usePlayer();
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isPressed, setIsPressed] = useState(false)
   

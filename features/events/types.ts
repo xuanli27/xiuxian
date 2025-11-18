@@ -1,31 +1,13 @@
-import type { GameEvent, EventChoice, EventResult, EventType } from '@/types/events';
+import { z } from 'zod';
+import { processEventChoiceSchema, aiGeneratedEventSchema } from './schemas';
 
-export type { GameEvent, EventChoice, EventResult, EventType };
+/**
+ * The type for an AI-generated event, inferred from the Zod schema.
+ * This ensures type safety between the AI generation, backend processing, and frontend display.
+ */
+export type AIEvent = z.infer<typeof aiGeneratedEventSchema>;
 
-export interface EventContext {
-  playerId: number;
-  playerState: {
-    rank: string;
-    level: number;
-    qi: number;
-    spiritStones: number;
-    mindState: string;
-  };
-  recentEvents: string[];
-}
-
-export interface ProcessEventChoiceInput {
-  playerId: number;
-  eventId: string;
-  choiceId: string;
-}
-
-export interface EventLogData {
-  eventId: string;
-  eventType: EventType;
-  title: string;
-  description: string;
-  choiceId?: string;
-  choiceText?: string;
-  result: EventResult;
-}
+/**
+ * Input type for processing a player's choice in an event.
+ */
+export type ProcessEventChoiceInput = z.infer<typeof processEventChoiceSchema>;

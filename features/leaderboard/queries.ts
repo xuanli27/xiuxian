@@ -1,284 +1,135 @@
-import { cache } from 'react'
-import { prisma } from '@/lib/db/prisma'
-import { redis } from '@/lib/db/redis'
-import { Rank } from '@prisma/client'
-import type { LeaderboardCategory } from './types'
-import type { LeaderboardEntry, LeaderboardResponse, Season } from './types'
+import { cache } from 'react';
+import { prisma } from '@/lib/db/prisma';
+import { redis, isRedisEnabled } from '@/lib/db/redis';
+import type { LeaderboardCategory, LeaderboardResponse, Season } from './types';
+import { Rank, type Prisma } from '@prisma/client';
 
-/**
- * 排行榜系统数据查询函数
- */
+async function getActiveSeason(): Promise<Season> {
+  let season = await prisma.season.findFirst({
+    where: { isActive: true },
+  });
 
-/**
- * 获取当前赛季
- */
-export const getCurrentSeason = cache(async (): Promise<Season> => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
-  const quarter = Math.ceil(month / 3)
-  
-  return {
-    id: `${year}-Q${quarter}`,
-    name: `${year}年第${quarter}季度`,
-    startDate: new Date(year, (quarter - 1) * 3, 1),
-    endDate: new Date(year, quarter * 3, 0),
-    active: true,
+  if (!season) {
+    // This logic should ideally be in a cron job or a guarded admin action,
+    // but for simplicity, we create it on-demand here.
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const quarter = Math.ceil(month / 3);
+    const id = `${year}-Q${quarter}`;
+    
+    season = await prisma.season.create({
+      data: {
+        id,
+        name: `${year}年第${quarter}季度`,
+        startDate: new Date(year, (quarter - 1) * 3, 1),
+        endDate: new Date(year, quarter * 3, 0),
+        isActive: true,
+      },
+    });
   }
-})
+  return season as Season;
+}
 
-/**
- * 获取排行榜
- */
+const LEADERBOARD_CACHE_TTL = 300; // 5 minutes
+
 export const getLeaderboard = cache(async (
   category: LeaderboardCategory,
-  season?: string,
   page: number = 1,
   pageSize: number = 20
 ): Promise<LeaderboardResponse> => {
-  const currentSeason = season || (await getCurrentSeason()).id
-  
-  // 如果 Redis 可用，尝试从缓存读取
-  if (redis) {
-    const cacheKey = `leaderboard:${category}:${currentSeason}:${page}:${pageSize}`
-    
+  const season = await getActiveSeason();
+  const cacheKey = `leaderboard:${season.id}:${category}:${page}:${pageSize}`;
+
+  if (isRedisEnabled() && redis) {
     try {
-      const cached = await redis.get(cacheKey)
-      if (cached) {
-        return JSON.parse(cached)
-      }
+      const cached = await redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
     } catch (error) {
-      console.error('Redis read error:', error)
+      console.error('Redis read error:', error);
     }
   }
-  
-  let orderBy: any = {}
-  let selectFields: any = {
-    id: true,
-    name: true,
-  }
 
-  // 根据排行榜类型设置排序和选择字段
+  let orderBy: Prisma.LeaderboardOrderByWithRelationInput = {};
   switch (category) {
     case 'REALM':
-      orderBy = [{ rank: 'desc' }, { level: 'desc' }]
-      selectFields = { ...selectFields, rank: true, level: true }
-      break
+      orderBy = { realmScore: 'desc' };
+      break;
     case 'POWER':
-      // 计算战力 = 攻击 + 防御 + 生命/10
-      orderBy = { contribution: 'desc' } // 临时用贡献代替战力
-      selectFields = { ...selectFields, contribution: true }
-      break
+      orderBy = { powerScore: 'desc' };
+      break;
     case 'WEALTH':
-      orderBy = { spiritStones: 'desc' }
-      selectFields = { ...selectFields, spiritStones: true }
-      break
+      orderBy = { wealthScore: 'desc' };
+      break;
     case 'CONTRIBUTION':
-      orderBy = { contribution: 'desc' }
-      selectFields = { ...selectFields, contribution: true, sectRank: true }
-      break
-    case 'CAVE':
-      orderBy = { caveLevel: 'desc' }
-      selectFields = { ...selectFields, caveLevel: true }
-      break
-    case 'CULTIVATION':
-      orderBy = { qi: 'desc' }
-      selectFields = { ...selectFields, qi: true, maxQi: true }
-      break
+      orderBy = { contributionScore: 'desc' };
+      break;
   }
 
-  // 查询玩家
-  const players = await prisma.player.findMany({
-    select: selectFields,
-    orderBy,
-    skip: (page - 1) * pageSize,
-    take: pageSize,
-  })
+  const [entries, totalEntries] = await prisma.$transaction([
+    prisma.leaderboard.findMany({
+      where: { seasonId: season.id },
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.leaderboard.count({
+      where: { seasonId: season.id },
+    }),
+  ]);
 
-  const totalEntries = await prisma.player.count()
-  const totalPages = Math.ceil(totalEntries / pageSize)
-
-  // 转换为排行榜条目
-  const entries: LeaderboardEntry[] = players.map((p: any, index) => {
-    const entry: LeaderboardEntry = {
-      rank: (page - 1) * pageSize + index + 1,
-      playerId: p.id,
-      playerName: p.name,
-      updatedAt: new Date(),
-    }
-
-    switch (category) {
-      case 'REALM':
-        entry.realm = p.rank
-        entry.level = p.level
-        break
-      case 'POWER':
-        entry.power = p.contribution // 临时
-        break
-      case 'WEALTH':
-        entry.wealth = p.spiritStones
-        break
-      case 'CONTRIBUTION':
-        entry.contribution = p.contribution
-        entry.sectRank = p.sectRank
-        break
-      case 'CAVE':
-        entry.caveLevel = p.caveLevel
-        break
-      case 'CULTIVATION':
-        entry.cultivationSpeed = p.qi
-        break
-    }
-
-    return entry
-  })
+  const totalPages = Math.ceil(totalEntries / pageSize);
 
   const result = {
     category,
-    season: currentSeason,
-    entries,
+    season,
+    entries: entries.map((entry, index) => ({
+      ...entry,
+      rank: (page - 1) * pageSize + index + 1,
+    })),
     currentPage: page,
     totalPages,
     totalEntries,
-  }
-  
-  // 如果 Redis 可用，写入缓存，TTL 5分钟
-  if (redis) {
-    const cacheKey = `leaderboard:${category}:${currentSeason}:${page}:${pageSize}`
-    
+  };
+
+  if (isRedisEnabled() && redis) {
     try {
-      await redis.setex(cacheKey, 300, JSON.stringify(result))
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', LEADERBOARD_CACHE_TTL);
     } catch (error) {
-      console.error('Redis write error:', error)
+      console.error('Redis write error:', error);
     }
   }
 
-  return result
-})
+  return result;
+});
 
-/**
- * 获取玩家排名
- */
 export const getPlayerRank = cache(async (
   playerId: number,
-  category: LeaderboardCategory,
-  season?: string
-): Promise<LeaderboardEntry | null> => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId }
-  })
+  category: LeaderboardCategory
+): Promise<{ rank: number } | null> => {
+  const season = await getActiveSeason();
+  const entry = await prisma.leaderboard.findUnique({
+    where: { playerId_seasonId: { playerId, seasonId: season.id } },
+  });
 
-  if (!player) return null
+  if (!entry) return null;
 
-  // 计算排名
-  let higherRanked = 0
-
+  let countQuery: Prisma.LeaderboardCountArgs = { where: { seasonId: season.id } };
   switch (category) {
     case 'REALM':
-      // 获取所有境界更高的玩家
-      const rankOrder = Object.values(Rank)
-      const currentRankIndex = rankOrder.indexOf(player.rank)
-      const higherRanks = rankOrder.slice(currentRankIndex + 1)
-      
-      higherRanked = await prisma.player.count({
-        where: {
-          OR: [
-            { rank: { in: higherRanks } },
-            { rank: player.rank, level: { gt: player.level } }
-          ]
-        }
-      })
-      break
+      countQuery.where!.realmScore = { gt: entry.realmScore };
+      break;
+    case 'POWER':
+      countQuery.where!.powerScore = { gt: entry.powerScore };
+      break;
     case 'WEALTH':
-      higherRanked = await prisma.player.count({
-        where: { spiritStones: { gt: player.spiritStones } }
-      })
-      break
+      countQuery.where!.wealthScore = { gt: entry.wealthScore };
+      break;
     case 'CONTRIBUTION':
-      higherRanked = await prisma.player.count({
-        where: { contribution: { gt: player.contribution } }
-      })
-      break
-    case 'CAVE':
-      higherRanked = await prisma.player.count({
-        where: { caveLevel: { gt: player.caveLevel } }
-      })
-      break
-    case 'CULTIVATION':
-      higherRanked = await prisma.player.count({
-        where: { qi: { gt: player.qi } }
-      })
-      break
+      countQuery.where!.contributionScore = { gt: entry.contributionScore };
+      break;
   }
 
-  const entry: LeaderboardEntry = {
-    rank: higherRanked + 1,
-    playerId: player.id,
-    playerName: player.name,
-    updatedAt: new Date(),
-  }
-
-  switch (category) {
-    case 'REALM':
-      entry.realm = player.rank
-      entry.level = player.level
-      break
-    case 'WEALTH':
-      entry.wealth = player.spiritStones
-      break
-    case 'CONTRIBUTION':
-      entry.contribution = player.contribution
-      entry.sectRank = player.sectRank
-      break
-    case 'CAVE':
-      entry.caveLevel = player.caveLevel
-      break
-    case 'CULTIVATION':
-      entry.cultivationSpeed = player.qi
-      break
-  }
-
-  return entry
-})
-
-/**
- * 获取排行榜奖励配置
- */
-export const getLeaderboardRewards = cache(async (category: LeaderboardCategory) => {
-  // 返回固定的奖励配置
-  return [
-    {
-      rank: 1,
-      rewards: {
-        spiritStones: 10000,
-        title: '第一名'
-      }
-    },
-    {
-      rank: 2,
-      rewards: {
-        spiritStones: 5000,
-        title: '第二名'
-      }
-    },
-    {
-      rank: 3,
-      rewards: {
-        spiritStones: 3000,
-        title: '第三名'
-      }
-    },
-    {
-      rankRange: { min: 4, max: 10 },
-      rewards: {
-        spiritStones: 1000,
-      }
-    },
-    {
-      rankRange: { min: 11, max: 50 },
-      rewards: {
-        spiritStones: 500,
-      }
-    },
-  ]
-})
+  const higherRankedCount = await prisma.leaderboard.count(countQuery);
+  return { rank: higherRankedCount + 1 };
+});

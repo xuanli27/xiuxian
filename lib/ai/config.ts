@@ -30,7 +30,6 @@ export function getAIModel() {
         baseURL: process.env.OPENAI_BASE_URL!,
       });
       return custom.chatModel(process.env.OPENAI_MODEL || 'gpt-4o-mini');
-    
     case 'openai':
     default:
       // 标准 OpenAI API（/v1/chat/completions）

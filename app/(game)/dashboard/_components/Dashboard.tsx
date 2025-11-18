@@ -30,12 +30,37 @@ export const Dashboard: React.FC = () => {
   })
 
   // 加载状态
-  if (isPlayerLoading || isRealmLoading || !player || !realmInfo) {
+  // 核心加载状态
+  if (isPlayerLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-amber-200 text-xl">加载中...</div>
+        <div className="text-amber-200 text-xl">加载玩家数据中...</div>
       </div>
-    )
+    );
+  }
+
+  // 玩家数据加载完毕但不存在
+  if (!player) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-center">
+        <h2 className="text-2xl font-bold text-red-400 mb-4">无法加载玩家档案</h2>
+        <p className="text-slate-400 mb-6">
+          似乎您还没有在这个世界中创建角色。
+        </p>
+        <Button onClick={() => window.location.href = '/register'}>
+          前往角色创建
+        </Button>
+      </div>
+    );
+  }
+
+  // 境界信息加载状态 (此时player已确认存在)
+  if (isRealmLoading || !realmInfo) {
+      return (
+          <div className="flex items-center justify-center min-h-screen">
+              <div className="text-amber-200 text-xl">加载境界信息中...</div>
+          </div>
+      )
   }
 
   // 计算突破相关数据
