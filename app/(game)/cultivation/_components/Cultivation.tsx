@@ -53,7 +53,7 @@ export const Cultivation: React.FC<Props> = ({ initialPlayer, initialRealmInfo, 
       queryClient.invalidateQueries({ queryKey: ['cultivation-stats'] });
       toast.success(`闭关结束，获得 ${result.expGained} 点灵气`, {
         icon: '🧘',
-        description: result.event || '心如止水，修为精进。'
+        description: result.message || '心如止水，修为精进。'
       });
     },
     onError: (error) => {

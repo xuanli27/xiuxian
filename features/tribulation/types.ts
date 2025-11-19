@@ -140,3 +140,11 @@ export type TribulationStats = {
   averageWavesCompleted: number
   lastAttemptAt?: Date
 }
+
+// 渡劫面板数据
+export type TribulationDashboard = {
+  needsTribulation: boolean
+  preparation: TribulationPreparation
+  history: TribulationHistory[]
+  stats: TribulationStats
+}

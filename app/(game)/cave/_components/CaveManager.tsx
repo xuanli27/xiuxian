@@ -5,8 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowUpCircle, Hammer, Home, Sparkles, Box } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 import clsx from 'clsx';
-import { getPlayerCave, getCaveStats } from '@/features/cave/queries';
-import { upgradeCave } from '@/features/cave/actions';
+import { getPlayerCave, getCaveStats, upgradeCave } from '@/features/cave/actions';
 import { CAVE_CONFIG } from '@/config/game';
 import { calculateCaveUpgradeCost } from '@/features/cave/utils';
 import type { Player } from '@prisma/client';
@@ -22,13 +21,13 @@ export const CaveManager: React.FC<Props> = ({ initialCave, player }) => {
 
   const { data: cave } = useQuery({
     queryKey: ['cave', player.id],
-    queryFn: () => getPlayerCave(player.id),
+    queryFn: () => getPlayerCave(),
     initialData: initialCave,
   });
 
   const { data: stats } = useQuery({
     queryKey: ['caveStats', player.id],
-    queryFn: () => getCaveStats(player.id),
+    queryFn: () => getCaveStats(),
   });
 
   const upgrade = useMutation({

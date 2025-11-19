@@ -24,6 +24,20 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  
+  // Webpack 配置 - 排除服务端模块
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        dns: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

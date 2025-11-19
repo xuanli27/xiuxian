@@ -1,8 +1,14 @@
 import { cache } from 'react';
 import { prisma } from '@/lib/db/prisma';
-import { redis, isRedisEnabled } from '@/lib/db/redis';
 import type { LeaderboardCategory, LeaderboardResponse, Season } from './types';
 import { Rank, type Prisma } from '@prisma/client';
+
+// 动态导入 Redis（仅在服务端）
+const getRedis = async () => {
+  if (typeof window !== 'undefined') return { redis: null, isRedisEnabled: () => false };
+  const { redis, isRedisEnabled } = await import('@/lib/db/redis');
+  return { redis, isRedisEnabled };
+};
 
 async function getActiveSeason(): Promise<Season> {
   let season = await prisma.season.findFirst({
@@ -41,6 +47,7 @@ export const getLeaderboard = cache(async (
   const season = await getActiveSeason();
   const cacheKey = `leaderboard:${season.id}:${category}:${page}:${pageSize}`;
 
+  const { redis, isRedisEnabled } = await getRedis();
   if (isRedisEnabled() && redis) {
     try {
       const cached = await redis.get(cacheKey);
@@ -85,22 +92,23 @@ export const getLeaderboard = cache(async (
     season,
     entries: entries.map((entry, index) => ({
       ...entry,
-      rank: (page - 1) * pageSize + index + 1,
+      ranking: (page - 1) * pageSize + index + 1,
     })),
     currentPage: page,
     totalPages,
     totalEntries,
   };
 
-  if (isRedisEnabled() && redis) {
+  const { redis: redisWrite, isRedisEnabled: isEnabled } = await getRedis();
+  if (isEnabled() && redisWrite) {
     try {
-      await redis.set(cacheKey, JSON.stringify(result), 'EX', LEADERBOARD_CACHE_TTL);
+      await redisWrite.set(cacheKey, JSON.stringify(result), 'EX', LEADERBOARD_CACHE_TTL);
     } catch (error) {
       console.error('Redis write error:', error);
     }
   }
 
-  return result;
+  return result as unknown as LeaderboardResponse;
 });
 
 export const getPlayerRank = cache(async (

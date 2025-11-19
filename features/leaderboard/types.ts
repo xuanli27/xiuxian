@@ -1,18 +1,28 @@
-import type { Leaderboard, Season as PrismaSeason } from '@prisma/client';
+import type { Leaderboard, Season, Rank } from '@prisma/client';
 
 /**
  * 排行榜系统类型定义
  */
 
-// 排行榜类型 (保持与旧版兼容，但后端现在使用 score 字段)
+// 排行榜类型
 export type LeaderboardCategory = 'REALM' | 'POWER' | 'WEALTH' | 'CONTRIBUTION';
 
-// 扩展 Prisma 生成的 Season 类型
-export type Season = PrismaSeason;
+// 排行榜类别枚举（用于组件）
+export const LeaderboardCategory = {
+  REALM: 'REALM' as LeaderboardCategory,
+  POWER: 'POWER' as LeaderboardCategory,
+  WEALTH: 'WEALTH' as LeaderboardCategory,
+  CONTRIBUTION: 'CONTRIBUTION' as LeaderboardCategory,
+} as const;
 
-// 排行榜条目，基于 Prisma 模型并添加了动态计算的排名
-export type LeaderboardEntry = Leaderboard & {
-  rank: number;
+// 导出类型
+export type { Season, Rank };
+
+// 排行榜条目（扩展 Prisma 模型，添加排名位置）
+export type LeaderboardEntry = Omit<Leaderboard, 'rank'> & {
+  ranking: number;  // 排名位置（1, 2, 3...）
+  rankChange?: number;
+  rank: Rank;  // 境界等级（来自 Prisma）
 };
 
 // 排行榜响应

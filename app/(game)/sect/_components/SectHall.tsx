@@ -6,8 +6,7 @@ import { Crown, Scroll, TrendingUp, Lock, ShoppingBag, Coins, Building2, Store }
 import { Button, Card, PageHeader } from '@/components/ui';
 import { IdentityCard } from './IdentityCard';
 import clsx from 'clsx';
-import { getSectInfo, getPlayerSectStats, getSectPositions } from '@/features/sect/queries';
-import { requestPromotion, purchaseItem } from '@/features/sect/actions';
+import { getSectInfo, getPlayerSectStats, getSectPositions, requestPromotion, purchaseItem } from '@/features/sect/actions';
 import { SECT_CONFIG } from '@/config/game';
 import { SHOP_ITEMS } from '@/features/sect/data/shop';
 import type { Player } from '@prisma/client';
@@ -28,7 +27,7 @@ export const SectHall: React.FC<Props> = ({ player }) => {
 
   const { data: sectStats } = useQuery({
     queryKey: ['sectStats', player.id],
-    queryFn: () => getPlayerSectStats(player.id),
+    queryFn: () => getPlayerSectStats(),
   });
 
   const { data: positions } = useQuery({

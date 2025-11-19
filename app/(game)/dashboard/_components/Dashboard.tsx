@@ -1,9 +1,10 @@
+'use client'
+
 import React, { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usePlayer } from '@/hooks/use-player'
 import { getCurrentPlayerRealmInfo, autoCultivate } from '@/features/cultivation/actions'
-import { QiCirculation } from '@/components/game/QiCirculation'
-import { Button } from '@/components/ui'
+import { QiCirculation3D } from '@/components/game/QiCirculation3D'
 import { Loader2 } from 'lucide-react'
 
 export const Dashboard: React.FC = () => {
@@ -61,10 +62,12 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 核心视觉：周天运行 */}
-      <div className="w-full max-w-md px-8">
-        <QiCirculation
+      {/* 核心视觉：周天运行 3D */}
+      <div className="w-full max-w-4xl px-4">
+        <QiCirculation3D
           isCultivating={true}
+          qi={player.qi}
+          maxQi={player.maxQi}
           realm={`${realmInfo.name} ${player.level}重`}
         />
       </div>

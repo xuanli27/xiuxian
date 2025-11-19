@@ -1,5 +1,6 @@
-import { streamText, generateText } from 'ai'
+import { streamText, generateText, generateObject } from 'ai'
 import { getAIModel } from './config'
+import type { z } from 'zod'
 
 const MODEL = getAIModel()
 
@@ -22,6 +23,23 @@ export async function generateAIText(prompt: string) {
     prompt
   })
   return text
+}
+
+/**
+ * 结构化数据生成
+ * @param schema Zod schema
+ * @param prompt 提示词
+ */
+export async function generateStructuredData<T extends z.ZodTypeAny>(
+  schema: T,
+  prompt: string
+): Promise<z.infer<T>> {
+  const { object } = await generateObject({
+    model: MODEL,
+    schema,
+    prompt
+  })
+  return object
 }
 
 /**

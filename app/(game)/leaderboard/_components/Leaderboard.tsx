@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getLeaderboard } from '@/features/leaderboard/queries';
+import { getLeaderboard } from '@/features/leaderboard/actions';
 import { LeaderboardCategory, type LeaderboardEntry } from '@/features/leaderboard/types';
 import { Crown, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import clsx from 'clsx';
@@ -50,15 +50,15 @@ export const Leaderboard: React.FC<Props> = ({ initialLeaderboardData }) => {
             </tr>
           </thead>
           <tbody>
-            {leaderboardData?.map((entry, index) => (
+            {leaderboardData?.map((entry) => (
               <tr key={entry.playerId} className="border-b border-border-base last:border-b-0 hover:bg-surface-700/50">
                 <td className="p-4 font-bold flex items-center gap-2">
-                  {entry.rank === 1 ? <Crown className="text-yellow-400" /> : entry.rank}
+                  {entry.ranking === 1 ? <Crown className="text-yellow-400" /> : entry.ranking}
                   <RankChange change={entry.rankChange} />
                 </td>
                 <td className="p-4">{entry.playerName}</td>
                 <td className="p-4 font-mono">
-                  {renderValue(entry)}
+                  {renderValue(entry, category)}
                 </td>
               </tr>
             ))}
@@ -79,11 +79,17 @@ const RankChange = ({ change }: { change?: number }) => {
   return <TrendingDown size={16} className="text-red-500" />;
 };
 
-const renderValue = (entry: LeaderboardEntry) => {
-  if (entry.power) return `${entry.power} 战力`;
-  if (entry.wealth) return `${entry.wealth} 灵石`;
-  if (entry.contribution) return `${entry.contribution} 贡献`;
-  if (entry.caveLevel) return `Lv.${entry.caveLevel} 洞府`;
-  if (entry.realm) return `${entry.realm} ${entry.level}级`;
-  return '-';
+const renderValue = (entry: LeaderboardEntry, category: LeaderboardCategory) => {
+  switch (category) {
+    case 'REALM':
+      return `${entry.rank} ${entry.level}级`;
+    case 'POWER':
+      return `${Number(entry.powerScore)} 战力`;
+    case 'WEALTH':
+      return `${Number(entry.wealthScore)} 灵石`;
+    case 'CONTRIBUTION':
+      return `${Number(entry.contributionScore)} 贡献`;
+    default:
+      return '-';
+  }
 }

@@ -1,12 +1,27 @@
-'use server';
+'use server'
 
-import { prisma } from '@/lib/db/prisma';
-import { getCurrentUserId } from '@/lib/auth/guards';
-import { revalidatePath } from 'next/cache';
-import { generateObject } from 'ai';
-import { google } from '@ai-sdk/google';
-import { z } from 'zod';
-import { TaskDifficulty, TaskType, TaskStatus } from '@prisma/client';
+import { getAvailableTasks as getAvailableTasksQuery } from './queries'
+import { prisma } from '@/lib/db/prisma'
+import { getCurrentUserId } from '@/lib/auth/guards'
+import { revalidatePath } from 'next/cache'
+import { generateStructuredData } from '@/lib/ai/client'
+import { z } from 'zod'
+import { TaskDifficulty, TaskType, TaskStatus } from '@prisma/client'
+
+/**
+ * Server Action: 获取可用任务列表
+ */
+export async function getAvailableTasks() {
+  const userId = await getCurrentUserId()
+  const player = await prisma.player.findUnique({
+    where: { userId },
+    select: { id: true }
+  })
+  
+  if (!player) return []
+  
+  return getAvailableTasksQuery()
+}
 
 // Define the schema for task generation
 const taskSchema = z.object({
@@ -27,16 +42,12 @@ export async function generateNextTask() {
   if (!player) throw new Error("玩家不存在");
 
   // Use AI to generate a task based on player's level
-  const prompt = `Generate a Xianxia (cultivation) themed task for a player at level ${player.level}. 
+  const prompt = `Generate a Xianxia (cultivation) themed task for a player at level ${player.level}.
   The task should be related to their current cultivation stage.
   Make it sound like a quest from a sect elder or a mysterious encounter.
   Difficulty should be appropriate for their level.`;
 
-  const { object: taskData } = await generateObject({
-    model: google('gemini-1.5-flash'),
-    schema: taskSchema,
-    prompt: prompt,
-  });
+  const taskData = await generateStructuredData(taskSchema, prompt);
 
   const newTask = await prisma.task.create({
     data: {
@@ -46,9 +57,10 @@ export async function generateNextTask() {
       difficulty: taskData.difficulty as TaskDifficulty,
       type: taskData.type as TaskType,
       status: TaskStatus.PENDING,
-      rewardQi: 100, // Default value
-      rewardStones: taskData.rewardSpiritStones, // Map to schema
-      rewardContribution: taskData.rewardSectContribution // Map to schema
+      duration: 3600, // Default 1 hour in seconds
+      rewardQi: 100,
+      rewardStones: taskData.rewardSpiritStones,
+      rewardContribution: taskData.rewardSectContribution
     }
   });
 

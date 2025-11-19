@@ -6,8 +6,7 @@ import { PackageOpen, Zap, ShieldMinus, MoveUp, Backpack } from 'lucide-react';
 import { Button, PageHeader } from '@/components/ui';
 import clsx from 'clsx';
 import { EquipmentPanel } from './EquipmentPanel';
-import { getPlayerInventory } from '@/features/inventory/queries';
-import { useItem, equipItem } from '@/features/inventory/actions';
+import { getPlayerInventory, useItem, equipItem } from '@/features/inventory/actions';
 import type { Player } from '@prisma/client';
 import type { InventoryItem, Item } from '@/features/inventory/types';
 
@@ -22,7 +21,7 @@ export const Inventory: React.FC<Props> = ({ initialItems, player }) => {
 
   const { data: items, isLoading } = useQuery({
     queryKey: ['inventory', player.id],
-    queryFn: () => getPlayerInventory(player.id),
+    queryFn: () => getPlayerInventory(),
     initialData: initialItems,
   });
 

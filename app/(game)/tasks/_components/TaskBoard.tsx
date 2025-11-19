@@ -3,8 +3,7 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Card } from '@/components/ui';
-import { getAvailableTasks } from '@/features/tasks/queries';
-import { acceptTask, completeTask, generateNextTask } from '@/features/tasks/actions';
+import { getAvailableTasks, acceptTask, completeTask, generateNextTask } from '@/features/tasks/actions';
 import type { Task } from '@prisma/client';
 import { toast } from 'sonner';
 import { Scroll, CheckCircle2, RefreshCw, MapPin, Sword, BookOpen } from 'lucide-react';

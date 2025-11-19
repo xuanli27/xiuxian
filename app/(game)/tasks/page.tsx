@@ -26,7 +26,6 @@ export default async function TasksPage() {
   return (
     <TaskBoard
       initialTasks={tasks}
-      player={player}
     />
   )
 }
