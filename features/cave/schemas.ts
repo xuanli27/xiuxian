@@ -98,3 +98,10 @@ export type CollectProductionInput = z.infer<typeof collectProductionSchema>
 export type CollectAllResourcesInput = z.infer<typeof collectAllResourcesSchema>
 export type RenameCaveInput = z.infer<typeof renameCaveSchema>
 export type DeployFormationInput = z.infer<typeof deployFormationSchema>
+
+// 炼制物品
+export const craftItemSchema = z.object({
+  recipeId: z.string().min(1, '配方ID不能为空'),
+})
+
+export type CraftItemInput = z.infer<typeof craftItemSchema>

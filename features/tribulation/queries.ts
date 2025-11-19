@@ -1,10 +1,10 @@
 import { cache } from 'react'
 import { prisma } from '@/lib/db/prisma'
 import type { Rank } from '@prisma/client'
-import type { 
-  TribulationHistory, 
-  TribulationStats, 
-  TribulationPreparation 
+import type {
+  TribulationHistory,
+  TribulationStats,
+  TribulationPreparation
 } from './types'
 
 /**
@@ -26,11 +26,11 @@ export const getTribulationHistory = cache(async (
   if (!player) return []
 
   const history = Array.isArray(player.history) ? player.history : []
-  
+
   const tribulationRecords = history
     .filter((r: any) => r.type === 'TRIBULATION')
     .map((r: any) => ({
-      id: r.id || `trib_${Date.now()}`,
+      id: r.id || `trib_${Date.now()}_${Math.random()}`,
       playerId,
       type: r.tribulationType || 'THUNDER',
       difficulty: r.difficulty || 'MINOR',
@@ -41,6 +41,7 @@ export const getTribulationHistory = cache(async (
       totalWaves: r.totalWaves || 9,
       createdAt: new Date(r.timestamp || Date.now()),
     }))
+    .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
     .slice(0, limit)
 
   return tribulationRecords
@@ -59,7 +60,7 @@ export const getTribulationStats = cache(async (
   const failedAttempts = totalAttempts - successfulAttempts
   const successRate = totalAttempts > 0 ? successfulAttempts / totalAttempts : 0
 
-  const highestWaveReached = history.reduce((max, h) => 
+  const highestWaveReached = history.reduce((max, h) =>
     Math.max(max, h.wavesCompleted), 0
   )
 
@@ -124,7 +125,7 @@ export const getTribulationPreparation = cache(async (
   const recommendedDefense = 50 + level * 30
 
   // 计算成功率
-  const expProgress = player.qi / player.maxQi
+  const expProgress = player.maxQi > 0 ? player.qi / player.maxQi : 0
   let baseChance = expProgress * 0.6
 
   // 心魔减少成功率
@@ -182,3 +183,22 @@ export const needsTribulation = cache(async (playerId: number): Promise<boolean>
   // 灵气达到90%以上需要渡劫突破
   return player.qi >= player.maxQi * 0.9
 })
+
+/**
+ * 获取渡劫页面综合数据
+ */
+export const getTribulationDashboardData = cache(async (playerId: number) => {
+  const [needs, preparation, history, stats] = await Promise.all([
+    needsTribulation(playerId),
+    getTribulationPreparation(playerId),
+    getTribulationHistory(playerId),
+    getTribulationStats(playerId)
+  ]);
+
+  return {
+    needsTribulation: needs,
+    preparation,
+    history,
+    stats
+  };
+});

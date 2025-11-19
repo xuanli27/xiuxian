@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getCurrentPlayer } from '@/features/player/queries'
+import { getCurrentPlayer } from '@/features/player/actions'
 import { startMeditation, attemptBreakthrough } from '@/features/cultivation/actions'
 import type { Player } from '@prisma/client'
 
@@ -12,11 +12,11 @@ export function usePlayer() {
   const queryClient = useQueryClient()
 
   // 数据获取 (useQuery)
-  const { 
-    data: player, 
-    isLoading, 
-    isError, 
-    error 
+  const {
+    data: player,
+    isLoading,
+    isError,
+    error
   } = useQuery({
     queryKey: playerQueryKey,
     queryFn: () => getCurrentPlayer(),
@@ -26,7 +26,7 @@ export function usePlayer() {
   })
 
   // 数据变更 (useMutation)
-  
+
   // 封装修炼(打坐)的mutation
   const meditateMutation = useMutation({
     mutationFn: (variables: { duration: number }) => startMeditation(variables),
@@ -45,8 +45,8 @@ export function usePlayer() {
   // 封装境界突破的mutation
   const breakthroughMutation = useMutation({
     mutationFn: () => {
-        if (!player) throw new Error("玩家数据未加载,无法突破");
-        return attemptBreakthrough({ playerId: player.id });
+      if (!player) throw new Error("玩家数据未加载,无法突破");
+      return attemptBreakthrough({ playerId: player.id });
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: playerQueryKey })
@@ -64,12 +64,12 @@ export function usePlayer() {
     isLoading,
     isError,
     error,
-    
+
     // 玩家操作
     // 提供一个更简洁的API给组件调用
     meditate: meditateMutation.mutate,
     isMeditating: meditateMutation.isPending,
-    
+
     breakthrough: breakthroughMutation.mutate,
     isBreakingThrough: breakthroughMutation.isPending,
   }

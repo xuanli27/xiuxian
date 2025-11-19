@@ -3,53 +3,95 @@
 import { prisma } from '@/lib/db/prisma'
 import { getCurrentUserId } from '@/lib/auth/guards'
 import { revalidatePath } from 'next/cache'
-import { 
+import {
   startMeditationSchema,
   startRetreatSchema,
   breakthroughSchema,
 } from './schemas'
-import { 
+import {
   calculateCultivationExp,
   calculateBreakthroughChance,
   getNextRank,
   calculateBreakthroughCost,
 } from './utils'
-import type { BreakthroughResult } from './types'
+import type { BreakthroughResult, RealmInfo, CultivationStats } from './types'
+import { getPlayerRealmInfo, getCultivationStats } from './queries'
 
 /**
  * Cultivation Server Actions
  */
 
 /**
+ * 获取当前玩家的境界信息(客户端调用)
+ */
+export async function getCurrentPlayerRealmInfo(): Promise<RealmInfo | null> {
+  const userId = await getCurrentUserId()
+  const player = await prisma.player.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+    }
+  })
+
+  if (!player) return null
+
+  return getPlayerRealmInfo(player.id)
+}
+
+/**
+ * 获取当前玩家的修炼统计(客户端调用)
+ */
+export async function getCurrentCultivationStats(): Promise<CultivationStats> {
+  const userId = await getCurrentUserId()
+  const player = await prisma.player.findUnique({
+    where: { userId },
+    select: { id: true }
+  })
+
+  if (!player) {
+    return {
+      totalSessions: 0,
+      totalExpGained: 0,
+      totalBreakthroughs: 0,
+      successRate: 0,
+      longestRetreat: 0,
+      currentStreak: 0,
+    }
+  }
+
+  return getCultivationStats(player.id)
+}
+
+/**
  * 开始修炼(打坐)
  */
-export async function startMeditation(input: { 
+export async function startMeditation(input: {
   duration: number
-  boost?: number 
+  boost?: number
 }) {
   const userId = await getCurrentUserId()
-  
+
   // 验证输入
   const validated = startMeditationSchema.parse(input)
-  
+
   // 获取玩家
   const player = await prisma.player.findUnique({
     where: { userId }
   })
-  
+
   if (!player) {
     throw new Error('玩家不存在')
   }
-  
+
   // 计算经验收益
-  const spiritRootQuality = player.spiritRoot === 'HEAVEN' ? 3 : 
-                           player.spiritRoot === 'EARTH' ? 2 : 1
+  const spiritRootQuality = player.spiritRoot === 'HEAVEN' ? 3 :
+    player.spiritRoot === 'EARTH' ? 2 : 1
   const expGained = calculateCultivationExp(
     validated.duration,
     spiritRootQuality,
     validated.boost || 1
   )
-  
+
   // 更新玩家灵气
   const updatedPlayer = await prisma.player.update({
     where: { id: player.id },
@@ -69,15 +111,15 @@ export async function startMeditation(input: {
       }
     }
   })
-  
+
   revalidatePath('/cultivation')
   revalidatePath('/dashboard')
-  
-  return { 
-    success: true, 
+
+  return {
+    success: true,
     expGained,
     player: updatedPlayer,
-    message: `修炼完成!获得灵气: ${expGained}` 
+    message: `修炼完成!获得灵气: ${expGained}`
   }
 }
 
@@ -89,27 +131,27 @@ export async function startRetreat(input: {
   resources?: Array<{ itemId: string; quantity: number }>
 }) {
   const userId = await getCurrentUserId()
-  
+
   // 验证输入
   const validated = startRetreatSchema.parse(input)
-  
+
   // 获取玩家
   const player = await prisma.player.findUnique({
     where: { userId }
   })
-  
+
   if (!player) {
     throw new Error('玩家不存在')
   }
-  
+
   // 闭关经验是普通修炼的1.5倍
-  const spiritRootQuality = player.spiritRoot === 'HEAVEN' ? 3 : 
-                           player.spiritRoot === 'EARTH' ? 2 : 1
+  const spiritRootQuality = player.spiritRoot === 'HEAVEN' ? 3 :
+    player.spiritRoot === 'EARTH' ? 2 : 1
   const baseExp = calculateCultivationExp(validated.duration, spiritRootQuality, 1)
   const expGained = Math.floor(baseExp * 1.5)
-  
+
   // TODO: 检查和消耗资源
-  
+
   // 更新玩家
   const updatedPlayer = await prisma.player.update({
     where: { id: player.id },
@@ -128,15 +170,15 @@ export async function startRetreat(input: {
       }
     }
   })
-  
+
   revalidatePath('/cultivation')
   revalidatePath('/dashboard')
-  
-  return { 
-    success: true, 
+
+  return {
+    success: true,
     expGained,
     player: updatedPlayer,
-    message: `闭关结束!获得灵气: ${expGained}` 
+    message: `闭关结束!获得灵气: ${expGained}`
   }
 }
 
@@ -148,19 +190,19 @@ export async function attemptBreakthrough(input: {
   useItems?: Array<{ itemId: string; quantity: number }>
 }): Promise<BreakthroughResult> {
   const userId = await getCurrentUserId()
-  
+
   // 验证输入
   const validated = breakthroughSchema.parse(input)
-  
+
   // 获取玩家
   const player = await prisma.player.findUnique({
     where: { id: validated.playerId, userId }
   })
-  
+
   if (!player) {
     throw new Error('玩家不存在')
   }
-  
+
   // 检查是否已经是最高境界
   const nextRank = getNextRank(player.rank)
   if (!nextRank) {
@@ -172,12 +214,12 @@ export async function attemptBreakthrough(input: {
       message: '您已达到仙人境界,无法继续突破!'
     }
   }
-  
+
   // 计算突破成功率
   const expProgress = player.qi / player.maxQi
   const hasBreakthroughPill = validated.useItems && validated.useItems.length > 0
   const successChance = calculateBreakthroughChance(expProgress, 50, hasBreakthroughPill)
-  
+
   // 检查是否满足突破条件
   if (expProgress < 0.8) {
     return {
@@ -188,10 +230,10 @@ export async function attemptBreakthrough(input: {
       message: '灵气不足,需要达到80%才能尝试突破!'
     }
   }
-  
+
   // 计算消耗
   const cost = calculateBreakthroughCost(player.rank)
-  
+
   // 检查资源是否足够
   if (player.spiritStones < cost.spiritStones) {
     return {
@@ -202,15 +244,15 @@ export async function attemptBreakthrough(input: {
       message: `灵石不足!需要${cost.spiritStones}灵石`
     }
   }
-  
+
   // 随机判断是否成功
   const random = Math.random()
   const success = random < successChance
-  
+
   if (success) {
     // 突破成功
     const newMaxQi = Math.floor(player.maxQi * 2)
-    
+
     const updatedPlayer = await prisma.player.update({
       where: { id: player.id },
       data: {
@@ -232,10 +274,10 @@ export async function attemptBreakthrough(input: {
         }
       }
     })
-    
+
     revalidatePath('/cultivation')
     revalidatePath('/dashboard')
-    
+
     return {
       success: true,
       realmBefore: player.rank,
@@ -246,7 +288,7 @@ export async function attemptBreakthrough(input: {
   } else {
     // 突破失败
     const expLoss = Math.floor(player.qi * 0.3) // 失败损失30%灵气
-    
+
     const updatedPlayer = await prisma.player.update({
       where: { id: player.id },
       data: {
@@ -272,10 +314,10 @@ export async function attemptBreakthrough(input: {
         }
       }
     })
-    
+
     revalidatePath('/cultivation')
     revalidatePath('/dashboard')
-    
+
     return {
       success: false,
       realmBefore: player.rank,
@@ -291,24 +333,24 @@ export async function attemptBreakthrough(input: {
  */
 export async function stabilizeRealm() {
   const userId = await getCurrentUserId()
-  
+
   const player = await prisma.player.findUnique({
     where: { userId }
   })
-  
+
   if (!player) {
     throw new Error('玩家不存在')
   }
-  
+
   // 需要消耗时间和资源来稳固境界
   const stabilizeCost = 50 // 灵石消耗
-  
+
   if (player.spiritStones < stabilizeCost) {
     throw new Error('灵石不足')
   }
-  
+
   const innerDemonReduction = Math.min(player.innerDemon, 20)
-  
+
   const updatedPlayer = await prisma.player.update({
     where: { id: player.id },
     data: {
@@ -327,9 +369,9 @@ export async function stabilizeRealm() {
       }
     }
   })
-  
+
   revalidatePath('/cultivation')
-  
+
   return {
     success: true,
     innerDemonReduced: innerDemonReduction,

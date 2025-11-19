@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { SECONDARY_NAV } from '@/config/navigation'
 import type { Player } from '@prisma/client'
+import clsx from 'clsx'
 
 interface Props {
   player: Player
@@ -14,8 +15,8 @@ export const SecondaryPortals: React.FC<Props> = ({ player, canTribulation }) =>
     <div className="relative">
       {/* 标题 */}
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-amber-200 mb-1">仙境入口</h2>
-        <p className="text-xs text-slate-500">点击进入各处仙境</p>
+        <h2 className="text-xl font-bold text-primary-200 mb-1 font-xianxia tracking-widest">仙境入口</h2>
+        <div className="h-0.5 w-12 bg-gradient-to-r from-transparent via-primary-500 to-transparent mx-auto opacity-50"></div>
       </div>
 
       {/* 入口网格 */}
@@ -33,39 +34,40 @@ export const SecondaryPortals: React.FC<Props> = ({ player, canTribulation }) =>
               className="group relative"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <div className="relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm p-6 rounded-2xl border border-indigo-500/20 hover:border-amber-500/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-500/20">
+              <div className={clsx(
+                "relative h-full bg-surface-900/40 backdrop-blur-sm p-4 rounded-2xl border border-surface-700/50 transition-all duration-500",
+                "hover:border-primary-500/50 hover:bg-surface-800/60 hover:scale-105 hover:shadow-xl hover:shadow-primary-500/10",
+                "flex flex-col items-center text-center"
+              )}>
                 {/* 图标 */}
-                <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">
+                <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300 filter drop-shadow-lg">
                   {portal.icon}
                 </div>
-                
+
                 {/* 标题 */}
-                <h3 className="text-sm font-bold text-amber-200 mb-1 group-hover:text-amber-300">
+                <h3 className="text-sm font-bold text-content-200 mb-1 group-hover:text-primary-300 transition-colors">
                   {portal.title}
                 </h3>
-                
+
                 {/* 描述 */}
-                <p className="text-xs text-slate-400 line-clamp-2">
+                <p className="text-[10px] text-content-400 line-clamp-2 group-hover:text-content-300 transition-colors">
                   {portal.description}
                 </p>
 
                 {/* 徽章 */}
                 {portal.badge && (
-                  <div className="absolute top-2 right-2 px-2 py-1 bg-red-500/20 border border-red-500/50 rounded-full text-xs text-red-400 animate-pulse">
+                  <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-danger-900/80 border border-danger-500/50 rounded-full text-[10px] font-bold text-danger-300 animate-pulse shadow-lg shadow-danger-500/20">
                     {portal.badge}
                   </div>
                 )}
 
                 {/* 悬浮光效 */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-500/0 to-amber-500/0 group-hover:from-amber-500/10 group-hover:to-transparent transition-all duration-300 pointer-events-none" />
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary-500/0 to-secondary-500/0 group-hover:from-primary-500/5 group-hover:to-secondary-500/5 transition-all duration-500 pointer-events-none" />
               </div>
             </Link>
           )
         })}
       </div>
-
-      {/* 装饰性元素 */}
-      <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
     </div>
   )
 }

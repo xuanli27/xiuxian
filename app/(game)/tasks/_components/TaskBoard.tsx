@@ -1,115 +1,188 @@
 'use client'
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Loader2, Swords, Compass, MousePointerClick } from 'lucide-react';
-import { Button, Modal, PageHeader } from '@/components/ui';
-import { TaskCard } from './TaskCard';
-import { NavigationStation } from './NavigationStation';
-import { MessageCleanerGame } from './minigames/MessageCleanerGame';
-import { BattleArena } from './minigames/BattleArena';
-import { getPlayerTasks } from '@/features/tasks/queries';
-import { generateNewTaskForPlayer, completeTask } from '@/features/tasks/actions';
-import type { Task as PrismaTask, Player } from '@prisma/client';
-import type { Task } from '@/types/game';
+import { Button, Card } from '@/components/ui';
+import { getAvailableTasks } from '@/features/tasks/queries';
+import { acceptTask, completeTask, generateNextTask } from '@/features/tasks/actions';
+import type { Task } from '@prisma/client';
+import { toast } from 'sonner';
+import { Scroll, CheckCircle2, RefreshCw, MapPin, Sword, BookOpen } from 'lucide-react';
+import clsx from 'clsx';
 
 interface Props {
-  initialTasks: PrismaTask[]
-  player: Player
+  initialTasks: Task[];
 }
 
-export const TaskBoard: React.FC<Props> = ({ initialTasks, player }) => {
+export const TaskBoard: React.FC<Props> = ({ initialTasks }) => {
   const queryClient = useQueryClient();
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [showModal, setShowModal] = useState(false);
 
-  const { data: prismaTasks, isLoading: isLoadingTasks } = useQuery({
-    queryKey: ['tasks', player.id],
-    queryFn: () => getPlayerTasks(player.id),
+  const { data: tasks } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: () => getAvailableTasks(),
     initialData: initialTasks,
   });
 
-  // 转换为 Task 类型
-  const tasks: Task[] = prismaTasks?.map((t: PrismaTask) => ({
-    ...t,
-    reward: {
-      qi: t.rewardQi,
-      contribution: t.rewardContribution,
-      stones: t.rewardStones,
-      materials: []
-    },
-    completed: t.status === 'COMPLETED'
-  })) || [];
-
-  const generateTasks = useMutation({
-    mutationFn: () => generateNewTaskForPlayer(),
+  const generateTask = useMutation({
+    mutationFn: () => generateNextTask(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', player.id] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('新任务已发布');
     },
+    onError: (error) => {
+      toast.error(error.message);
+    }
+  });
+
+  const accept = useMutation({
+    mutationFn: (taskId: string) => acceptTask(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('任务已接受');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    }
   });
 
   const complete = useMutation({
     mutationFn: (taskId: string) => completeTask(taskId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', player.id] });
-      queryClient.invalidateQueries({ queryKey: ['player', player.id] });
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['player'] }); // Update player resources
+      toast.success('任务完成！', {
+        description: `获得奖励: ${result.rewards.spiritStones} 灵石, ${result.rewards.sectContribution} 贡献`
+      });
     },
+    onError: (error) => {
+      toast.error(error.message);
+    }
   });
 
-  const handleStartTask = (task: Task) => {
-    setActiveTask(task);
-    setShowModal(true);
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'EASY': return 'text-green-400 bg-green-400/10 border-green-400/20';
+      case 'MEDIUM': return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
+      case 'HARD': return 'text-purple-400 bg-purple-400/10 border-purple-400/20';
+      case 'EXTREME': return 'text-red-400 bg-red-400/10 border-red-400/20';
+      default: return 'text-content-400 bg-surface-800 border-surface-700';
+    }
   };
 
-  const handleComplete = (success: boolean) => {
-    if (activeTask && success) {
-      complete.mutate(String(activeTask.id));
-      setTimeout(() => { setShowModal(false); setActiveTask(null); }, 500);
-    } else {
-      setShowModal(false);
-      setActiveTask(null);
+  const getTaskIcon = (type: string) => {
+    switch (type) {
+      case 'COMBAT': return <Sword size={18} />;
+      case 'GATHER': return <MapPin size={18} />;
+      case 'CRAFT': return <RefreshCw size={18} />;
+      default: return <BookOpen size={18} />;
     }
   };
 
   return (
-    <div className="pb-24">
-      <PageHeader 
-        title="需求池" 
-        subtitle={`待办事项: ${tasks?.filter(t => t.status !== 'COMPLETED').length}`}
-        rightContent={
-             <Button variant="outline" size="sm" onClick={() => generateTasks.mutate()} loading={generateTasks.isPending} icon={<RefreshCw size={14} />}>
-                刷新OA
-            </Button>
-        }
-      />
-      
-      <div className="grid gap-4">
-        {isLoadingTasks ? (
-           <div className="flex flex-col items-center justify-center py-20 text-content-400 space-y-4">
-               <Loader2 className="animate-spin text-primary-400" size={40} />
-               <p className="font-mono text-sm animate-pulse">SYNCING_WORK_ORDERS...</p>
-           </div>
-        ) : (
-          tasks?.map(task => <TaskCard key={task.id} task={task} onStart={() => handleStartTask(task)} />)
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="flex justify-between items-center mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-secondary-900/30 rounded-2xl border border-secondary-500/30 text-secondary-400">
+            <Scroll size={28} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold font-xianxia text-transparent bg-clip-text bg-gradient-to-r from-secondary-300 to-secondary-500">
+              宗门任务榜
+            </h1>
+            <p className="text-content-400 text-sm mt-1">积攒功德，兑换资源</p>
+          </div>
+        </div>
+
+        <Button
+          onClick={() => generateTask.mutate()}
+          loading={generateTask.isPending}
+          variant="secondary"
+          icon={<RefreshCw size={16} className={clsx(generateTask.isPending && "animate-spin")} />}
+        >
+          刷新榜单
+        </Button>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {tasks?.map((task, index) => (
+          <div
+            key={task.id}
+            className="group relative animate-in fade-in slide-in-from-bottom-4 duration-500"
+            style={{ animationDelay: `${index * 100}ms` }}
+          >
+            <div className="absolute -inset-0.5 bg-gradient-to-br from-surface-700 to-surface-900 rounded-xl opacity-50 group-hover:opacity-100 transition duration-500 blur-sm group-hover:blur"></div>
+            <Card className="relative h-full flex flex-col justify-between border-surface-700/50 bg-surface-900/90 hover:bg-surface-900 transition-all duration-300">
+              <div>
+                <div className="flex justify-between items-start mb-3">
+                  <span className={clsx("px-2 py-1 rounded text-xs font-bold border flex items-center gap-1", getDifficultyColor(task.difficulty))}>
+                    {getTaskIcon(task.type)}
+                    {task.difficulty}
+                  </span>
+                  <span className={clsx(
+                    "text-xs font-bold px-2 py-1 rounded-full",
+                    task.status === 'COMPLETED' ? "bg-green-500/20 text-green-400" :
+                      task.status === 'IN_PROGRESS' ? "bg-blue-500/20 text-blue-400" :
+                        "bg-surface-800 text-content-400"
+                  )}>
+                    {task.status === 'PENDING' && '待领取'}
+                    {task.status === 'IN_PROGRESS' && '进行中'}
+                    {task.status === 'COMPLETED' && '已完成'}
+                  </span>
+                </div>
+
+                <h3 className="text-lg font-bold text-content-100 mb-2 line-clamp-1" title={task.title}>{task.title}</h3>
+                <p className="text-sm text-content-400 mb-4 line-clamp-3 h-[60px]">{task.description}</p>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between text-xs text-content-400 bg-surface-950/50 p-2 rounded border border-surface-800">
+                    <span>奖励灵石</span>
+                    <span className="text-primary-400 font-bold">+{task.rewardStones}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-content-400 bg-surface-950/50 p-2 rounded border border-surface-800">
+                    <span>宗门贡献</span>
+                    <span className="text-secondary-400 font-bold">+{task.rewardContribution}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-surface-800">
+                {task.status === 'PENDING' && (
+                  <Button
+                    className="w-full"
+                    variant="secondary"
+                    onClick={() => accept.mutate(task.id)}
+                    loading={accept.isPending && accept.variables === task.id}
+                  >
+                    接受任务
+                  </Button>
+                )}
+                {task.status === 'IN_PROGRESS' && (
+                  <Button
+                    className="w-full"
+                    variant="primary"
+                    onClick={() => complete.mutate(task.id)}
+                    loading={complete.isPending && complete.variables === task.id}
+                  >
+                    提交任务
+                  </Button>
+                )}
+                {task.status === 'COMPLETED' && (
+                  <Button className="w-full" variant="ghost" disabled>
+                    <CheckCircle2 size={16} className="mr-2" /> 已完成
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </div>
+        ))}
+
+        {(!tasks || tasks.length === 0) && (
+          <div className="col-span-full text-center py-20 text-content-400 bg-surface-900/30 rounded-2xl border border-surface-800 border-dashed">
+            <Scroll size={48} className="mx-auto mb-4 opacity-20" />
+            <p>暂无任务，请刷新榜单</p>
+          </div>
         )}
       </div>
-      
-      <Modal 
-        isOpen={showModal} 
-        onClose={() => setShowModal(false)} 
-        title={activeTask?.title || "执行中..."}
-        icon={activeTask?.type === 'BATTLE' ? <Swords size={18} className="text-danger-400"/> : (activeTask?.type === 'LINK' ? <Compass size={18} className="text-blue-400"/> : <MousePointerClick size={18} className="text-primary-400"/>)}
-        maxWidth={activeTask?.type === 'LINK' ? "w-[95vw] max-w-6xl h-[90vh]" : "max-w-lg"}
-        scrollable={activeTask?.type !== 'LINK'}
-      >
-         {activeTask && (
-            <div className="h-full flex flex-col">
-              {activeTask.type === 'GAME' && <MessageCleanerGame duration={activeTask.duration} onComplete={handleComplete} />}
-              {activeTask.type === 'BATTLE' && activeTask.enemy && <BattleArena playerPower={player.qi} enemy={activeTask.enemy} onComplete={handleComplete} />}
-              {activeTask.type === 'LINK' && <NavigationStation duration={activeTask.duration} onComplete={handleComplete} />}
-            </div>
-         )}
-      </Modal>
     </div>
   );
 };

@@ -16,23 +16,44 @@ import { calculateExpForLevel } from '@/lib/game/formulas'
  */
 
 /**
+ * 获取当前登录用户的玩家信息
+ * 这是一个 Server Action, 可以在客户端直接调用
+ */
+export async function getCurrentPlayer() {
+  const userId = await getCurrentUserId()
+  // 确保在没有玩家时返回 null 而不是抛出错误
+  const player = await prisma.player.findUnique({
+    where: { userId },
+    include: {
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  })
+  return player
+}
+
+/**
  * 创建新玩家
  */
 export async function createPlayer(input: { name: string; spiritRoot: string }) {
   const userId = await getCurrentUserId()
-  
+
   // 验证输入
   const validated = createPlayerSchema.parse(input)
-  
+
   // 检查是否已有玩家
   const existing = await prisma.player.findUnique({
     where: { userId }
   })
-  
+
   if (existing) {
     throw new Error('玩家已存在')
   }
-  
+
   // 创建玩家
   const player = await prisma.player.create({
     data: {
@@ -49,7 +70,7 @@ export async function createPlayer(input: { name: string; spiritRoot: string }) 
       caveLevel: 1,
     }
   })
-  
+
   revalidatePath('/')
   return { success: true, player }
 }
@@ -66,16 +87,16 @@ export async function updatePlayer(input: {
   spiritStones?: number
 }) {
   const userId = await getCurrentUserId()
-  
+
   // 验证输入
   const validated = updatePlayerSchema.parse(input)
-  
+
   // 更新玩家
   const player = await prisma.player.update({
     where: { userId },
     data: validated
   })
-  
+
   revalidatePath('/')
   return { success: true, player }
 }
@@ -85,31 +106,31 @@ export async function updatePlayer(input: {
  */
 export async function addQi(playerId: number, amount: number) {
   const userId = await getCurrentUserId()
-  
+
   // 验证输入
   const validated = addQiSchema.parse({ playerId, amount })
-  
+
   // 获取玩家
   const player = await prisma.player.findUnique({
     where: { id: validated.playerId }
   })
-  
+
   // 验证玩家所有权
   if (player && player.userId !== userId) {
     throw new Error('无权操作此玩家')
   }
-  
+
   if (!player) {
     throw new Error('玩家不存在')
   }
-  
+
   // 增加灵气
   const newQi = player.qi + validated.amount
   const updated = await prisma.player.update({
     where: { id: validated.playerId },
     data: { qi: Math.min(newQi, player.maxQi) }
   })
-  
+
   revalidatePath('/')
   return { success: true, player: updated, leveledUp: false }
 }
@@ -119,19 +140,19 @@ export async function addQi(playerId: number, amount: number) {
  */
 export async function addSpiritStones(playerId: number, amount: number) {
   const userId = await getCurrentUserId()
-  
+
   // 验证输入
   const validated = addSpiritStonesSchema.parse({ playerId, amount })
-  
+
   // 获取玩家验证所有权
   const existingPlayer = await prisma.player.findUnique({
     where: { id: validated.playerId }
   })
-  
+
   if (!existingPlayer || existingPlayer.userId !== userId) {
     throw new Error('玩家不存在或无权操作')
   }
-  
+
   // 更新灵石
   const player = await prisma.player.update({
     where: { id: validated.playerId },
@@ -141,7 +162,7 @@ export async function addSpiritStones(playerId: number, amount: number) {
       }
     }
   })
-  
+
   revalidatePath('/')
   return { success: true, player }
 }
@@ -151,18 +172,18 @@ export async function addSpiritStones(playerId: number, amount: number) {
  */
 export async function levelUpRealm(playerId: number) {
   const userId = await getCurrentUserId()
-  
+
   const player = await prisma.player.findUnique({
     where: { id: playerId }
   })
-  
+
   if (!player) {
     throw new Error('玩家不存在')
   }
-  
+
   // TODO: 实现境界升级逻辑
   // 这里需要根据经验值和当前境界判断是否可以升级
-  
+
   revalidatePath('/')
   return { success: true, message: '境界突破成功!' }
 }
@@ -178,16 +199,16 @@ export async function updatePlayerProgress(input: {
   caveLevel: number
 }) {
   const userId = await getCurrentUserId()
-  
+
   // 验证玩家所有权
   const player = await prisma.player.findUnique({
     where: { id: input.playerId }
   })
-  
+
   if (!player || player.userId !== userId) {
     throw new Error('无权操作此玩家')
   }
-  
+
   // 更新进度
   const updated = await prisma.player.update({
     where: { id: input.playerId },
@@ -198,6 +219,6 @@ export async function updatePlayerProgress(input: {
       caveLevel: input.caveLevel,
     }
   })
-  
+
   return { success: true, player: updated }
 }
