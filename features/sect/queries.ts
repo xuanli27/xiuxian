@@ -11,9 +11,29 @@ export const getSectInfo = cache(async () => {
     include: { sectMembership: { include: { sect: true } } }
   });
 
-  return player?.sectMembership?.sect || {
+  if (player?.sectMembership?.sect) {
+    const sect = player.sectMembership.sect;
+    const memberCount = await prisma.sectMember.count({
+      where: { sectId: sect.id }
+    });
+    
+    return {
+      name: sect.name,
+      description: sect.description,
+      totalMembers: memberCount,
+      averageLevel: 1,
+      totalContribution: sect.reputation,
+      ranking: 1
+    };
+  }
+  
+  return {
     name: '仙欲宗',
-    description: '摸鱼修仙，法力无边'
+    description: '摸鱼修仙,法力无边',
+    totalMembers: 1,
+    averageLevel: 1,
+    totalContribution: 0,
+    ranking: 1
   };
 });
 
@@ -22,19 +42,28 @@ export const getPlayerSectStats = cache(async (playerId: number) => {
     where: { id: playerId }
   });
 
-  if (!player) return null;
+  if (!player) {
+    return {
+      totalContribution: 0,
+      rank: 'OUTER' as const,
+      joinedAt: new Date()
+    };
+  }
 
   return {
     totalContribution: player.contribution,
-    currentRank: player.sectRank
+    rank: player.sectRank,
+    joinedAt: new Date()
   };
 });
 
 export const getSectPositions = cache(async () => {
   // Return static config for now
   return Object.entries(SECT_CONFIG.ranks.names).map(([key, name]) => ({
-    rank: key,
+    rank: key as any,
     name: name,
-    requiredContribution: SECT_CONFIG.ranks.requirements[key as keyof typeof SECT_CONFIG.ranks.requirements] || 0
+    requiredContribution: SECT_CONFIG.ranks.requirements[key as keyof typeof SECT_CONFIG.ranks.requirements] || 0,
+    benefits: [],
+    permissions: []
   }));
 });

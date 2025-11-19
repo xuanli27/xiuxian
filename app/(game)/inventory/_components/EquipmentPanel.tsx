@@ -36,7 +36,7 @@ export const EquipmentPanel: React.FC = () => {
 
     // Ensure equipped is treated as a Record<string, any> or similar structure if strictly typed
     // The Prisma type might be Json, so we cast or access safely
-    const equipped = (player.equipped as Record<string, any>) || {};
+    const equipped = (player.equipped as Record<string, { id: string }>) || {};
 
     return (
         <div className="relative bg-surface-900/80 backdrop-blur-md rounded-3xl p-8 border border-surface-700 shadow-2xl overflow-hidden group">

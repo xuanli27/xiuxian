@@ -192,7 +192,7 @@ export const Cultivation: React.FC<Props> = ({ initialPlayer, initialRealmInfo, 
           </div>
 
           <div className="mt-6 p-4 bg-surface-900/30 rounded-xl border border-surface-700/30 text-sm text-content-400 italic">
-            "修仙无岁月，一晃已千年。道友今日勤勉，他日必成大器。"
+            &quot;修仙无岁月，一晃已千年。道友今日勤勉，他日必成大器。&quot;
           </div>
         </div>
       </div>

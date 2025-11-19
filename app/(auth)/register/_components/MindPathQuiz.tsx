@@ -1,7 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { Check, BrainCircuit } from 'lucide-react';
-import { Button } from '@/components/ui';
-import clsx from 'clsx';
 
 export const MindPathQuiz: React.FC<{ onComplete: (mind: string) => void }> = ({ onComplete }) => {
   const [step, setStep] = useState(0);

@@ -16,7 +16,7 @@ export async function generateNextEvent(
   playerContext: object,
   maxRetries: number = 3
 ): Promise<AIEvent> {
-  let lastError: any = null;
+  let lastError: Error | null = null;
 
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -33,10 +33,16 @@ export async function generateNextEvent(
       return validatedEvent;
     } catch (error) {
       console.error(`AI event generation attempt ${i + 1} failed:`, error);
-      lastError = error;
+      if (error instanceof Error) {
+        lastError = error;
+      }
     }
   }
 
   // If all retries fail, throw an error
-  throw new Error(`Failed to generate a valid event after ${maxRetries} attempts. Last error: ${lastError.message}`);
+  if (lastError) {
+    throw new Error(`Failed to generate a valid event after ${maxRetries} attempts. Last error: ${lastError.message}`);
+  } else {
+    throw new Error(`Failed to generate a valid event after ${maxRetries} attempts.`);
+  }
 }

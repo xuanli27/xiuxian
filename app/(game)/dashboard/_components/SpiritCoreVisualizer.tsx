@@ -11,25 +11,32 @@ export const SpiritCoreVisualizer: React.FC<Props> = ({ onClick }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  if (!player) return null;
-
-  const progress = Math.min(100, (player.qi / player.maxQi) * 100);
+  const progress = player ? Math.min(100, (player.qi / player.maxQi) * 100) : 0;
 
   useEffect(() => {
-    if (!canvasRef.current || !containerRef.current) return;
+    if (!player || !canvasRef.current || !containerRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const resize = () => {
-      canvas.width = containerRef.current?.clientWidth || 300;
-      canvas.height = containerRef.current?.clientHeight || 300;
+      if (containerRef.current) {
+        canvas.width = containerRef.current.clientWidth;
+        canvas.height = containerRef.current.clientHeight;
+      }
     };
     window.addEventListener('resize', resize);
     resize();
 
     let animationId: number;
-    let particles: any[] = [];
+    const particles: {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      life: number;
+    }[] = [];
 
     const render = () => {
       const styles = getComputedStyle(document.documentElement);
@@ -104,7 +111,9 @@ export const SpiritCoreVisualizer: React.FC<Props> = ({ onClick }) => {
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(animationId);
     };
-  }, [progress]);
+  }, [player, progress]);
+
+  if (!player) return null;
 
   return (
     <div

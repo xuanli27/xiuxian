@@ -1,9 +1,9 @@
 'use server'
 
-import { 
-  getSectInfo as getSectInfoQuery, 
+import {
+  getSectInfo as getSectInfoQuery,
   getPlayerSectStats as getPlayerSectStatsQuery,
-  getSectPositions as getSectPositionsQuery 
+  getSectPositions as getSectPositionsQuery
 } from './queries'
 import { prisma } from '@/lib/db/prisma'
 import { getCurrentUserId } from '@/lib/auth/guards'
@@ -13,7 +13,7 @@ import type { SectInfo, PlayerSectStats, SectPosition } from './types'
 /**
  * Server Action: 获取宗门信息
  */
-export async function getSectInfo(): Promise<SectInfo | null> {
+export async function getSectInfo(): Promise<SectInfo> {
   return getSectInfoQuery()
 }
 
@@ -67,7 +67,7 @@ export async function requestPromotion(input: { playerId: number }) {
 /**
  * Server Action: 购买物品
  */
-export async function purchaseItem(itemId: string) {
+export async function purchaseItem(_itemId: string) {
   const userId = await getCurrentUserId()
   const player = await prisma.player.findUnique({
     where: { userId }

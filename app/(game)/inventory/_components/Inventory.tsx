@@ -6,7 +6,7 @@ import { PackageOpen, Zap, ShieldMinus, MoveUp, Backpack } from 'lucide-react';
 import { Button, PageHeader } from '@/components/ui';
 import clsx from 'clsx';
 import { EquipmentPanel } from './EquipmentPanel';
-import { getPlayerInventory, useItem, equipItem } from '@/features/inventory/actions';
+import { getPlayerInventory, useItem as itemAction, equipItem } from '@/features/inventory/actions';
 import type { Player } from '@prisma/client';
 import type { InventoryItem, Item } from '@/features/inventory/types';
 
@@ -25,8 +25,8 @@ export const Inventory: React.FC<Props> = ({ initialItems, player }) => {
     initialData: initialItems,
   });
 
-  const use = useMutation({
-    mutationFn: (itemId: string) => useItem({ itemId }),
+  const useItemMutation = useMutation({
+    mutationFn: (itemId: string) => itemAction({ itemId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory', player.id] });
       queryClient.invalidateQueries({ queryKey: ['player', player.id] });
@@ -92,7 +92,7 @@ export const Inventory: React.FC<Props> = ({ initialItems, player }) => {
                         size="sm"
                         variant={isEquip ? "secondary" : "ghost"}
                         className={clsx("w-full", !isEquip && "bg-surface-700 hover:bg-surface-600")}
-                        onClick={() => isEquip ? equip.mutate(item) : use.mutate(item.id)}
+                        onClick={() => isEquip ? equip.mutate(item) : useItemMutation.mutate(item.id)}
                         icon={isEquip ? <MoveUp size={14} /> : undefined}
                       >
                         {isEquip ? "装备" : "使用"}

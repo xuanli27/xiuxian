@@ -92,3 +92,10 @@ export type SectStats = {
   donationsTotal: number
   currentStreak: number
 }
+
+// 玩家门派统计
+export type PlayerSectStats = {
+  totalContribution: number
+  rank: SectRank
+  joinedAt: Date
+}

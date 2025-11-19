@@ -30,8 +30,8 @@ export function canAcceptTask(
  */
 export function canCompleteTask(
   taskStatus: string,
-  taskRequirements: Record<string, any>,
-  playerProgress: Record<string, any>
+  taskRequirements: Record<string, number>,
+  playerProgress: Record<string, number>
 ): boolean {
   if (taskStatus === 'COMPLETED') return false
   

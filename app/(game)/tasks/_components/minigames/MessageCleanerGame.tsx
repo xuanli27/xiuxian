@@ -10,7 +10,7 @@ export const MessageCleanerGame = ({ duration, onComplete }: { duration: number,
   useEffect(() => {
      const timer = setInterval(() => {
         setTimeLeft(t => {
-           if (t <= 0) { clearInterval(timer); onComplete(score >= 5); return 0; }
+           if (t <= 0) { clearInterval(timer); return 0; }
            return t - 0.1;
         });
      }, 100);
@@ -25,7 +25,7 @@ export const MessageCleanerGame = ({ duration, onComplete }: { duration: number,
         }
      }, 500);
      return () => { clearInterval(timer); clearInterval(spawner); };
-  }, []);
+  }, [onComplete, score]);
 
   return (
     <div className="h-[400px] relative bg-surface-900 select-none overflow-hidden cursor-crosshair rounded-2xl border border-border-base shadow-inner">

@@ -34,9 +34,18 @@ export async function getCaveStats(): Promise<CaveStats> {
   
   if (!player) {
     return {
-      storageCapacity: 0,
-      itemsStored: 0,
+      totalBuildings: 0,
+      activeBuildings: 0,
       productionRate: 0,
+      defensePower: 0,
+      storageCapacity: 0,
+      dailyIncome: {
+        spiritualEnergy: 0,
+        herbs: 0,
+        ores: 0,
+        pills: 0,
+        artifacts: 0,
+      },
     }
   }
   
@@ -72,4 +81,24 @@ export async function upgradeCave(input: { playerId: number }) {
   
   revalidatePath('/cave')
   return { success: true, newLevel: updatedPlayer.caveLevel }
+}
+
+/**
+ * Server Action: 炼制物品
+ */
+export async function craftItem(input: { recipeId: string }) {
+  const userId = await getCurrentUserId()
+  const player = await prisma.player.findUnique({
+    where: { userId }
+  })
+
+  if (!player) {
+    throw new Error('玩家不存在')
+  }
+
+  // TODO: 实现炼制逻辑
+
+  revalidatePath('/cave')
+  revalidatePath('/inventory')
+  return { success: true, message: '炼制成功' }
 }

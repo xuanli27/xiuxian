@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { IntroStory } from './_components/IntroStory'
 import { MindPathQuiz } from './_components/MindPathQuiz'
@@ -11,7 +10,6 @@ import { SpiritRootType } from '@/types'
 type OnboardingStep = 'intro' | 'quiz' | 'spirit'
 
 export default function RegisterPage() {
-  const router = useRouter()
   const [step, setStep] = useState<OnboardingStep>('intro')
   const [mindState, setMindState] = useState<string>('')
 

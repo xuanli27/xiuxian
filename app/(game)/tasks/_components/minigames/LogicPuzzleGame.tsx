@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { LOGIC_PUZZLES } from '@/data/constants';
-import { Code, CheckCircle, X, Bug } from 'lucide-react';
+import { CheckCircle, X, Bug } from 'lucide-react';
 import clsx from 'clsx';
 
 export const LogicPuzzleGame = ({ onComplete }: { onComplete: (s: boolean) => void }) => {

@@ -58,3 +58,22 @@ export async function equipItem(input: { itemId: string; slot: string }) {
   revalidatePath('/inventory')
   return { success: true, message: '装备成功' }
 }
+
+/**
+ * Server Action: 卸下装备
+ */
+export async function unequipItem(input: { slot: string }) {
+  const userId = await getCurrentUserId()
+  const player = await prisma.player.findUnique({
+    where: { userId }
+  })
+
+  if (!player) {
+    throw new Error('玩家不存在')
+  }
+
+  // TODO: 实现卸下装备逻辑
+
+  revalidatePath('/inventory')
+  return { success: true, message: '卸下成功' }
+}

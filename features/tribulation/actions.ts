@@ -20,10 +20,21 @@ export async function getTribulationDashboardData(): Promise<TribulationDashboar
     return {
       needsTribulation: false,
       preparation: {
+        recommendedHealth: 1000,
+        recommendedDefense: 100,
+        recommendedItems: [],
         successChance: 0,
         risks: []
       },
-      history: []
+      history: [],
+      stats: {
+        totalAttempts: 0,
+        successfulAttempts: 0,
+        failedAttempts: 0,
+        successRate: 0,
+        highestWaveReached: 0,
+        averageWavesCompleted: 0
+      }
     }
   }
   

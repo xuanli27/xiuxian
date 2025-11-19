@@ -49,7 +49,7 @@ export const generateOfflineSummary = async (hours: number, rankLabel: string, d
     });
     
     return text || "闭关期间，似乎做了一个关于带薪拉屎的长梦……";
-  } catch (error) {
+  } catch (_error) {
     return "闭关结束，神清气爽。";
   }
 };
@@ -89,8 +89,8 @@ export const generateTribulationQuiz = async (rankLabel: string): Promise<QuizQu
     });
 
     return object as QuizQuestion[];
-  } catch (error) {
-    console.error("Quiz Generation Error", error);
+  } catch (_error) {
+    console.error("Quiz Generation Error", _error);
     return [
       {
         question: "当老板经过你身后时，你正在看剧，此时应施展什么神通？",
@@ -163,8 +163,8 @@ export const generateDailyTasks = async (rank: string): Promise<Task[]> => {
       enemy: t.type === 'BATTLE' && !t.enemy ? { name: "心魔幻影", title: "Lv.1 杂鱼", power: 100, avatar: "👻" } : t.enemy
     }));
 
-  } catch (error) {
-    console.error("Task Gen Error", error);
+  } catch (_error) {
+    console.error("Task Gen Error", _error);
     return [
       {
         id: 't1',

@@ -7,10 +7,11 @@ import * as THREE from 'three'
 
 interface Props {
   active: boolean
-  progress: number
+  progress?: number
 }
 
-export const MeridiansSystem: React.FC<Props> = ({ active, progress }) => {
+export const MeridiansSystem: React.FC<Props> = ({ active }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const lineRef = useRef<any>(null)
   
   // 生成任督二脉路径
@@ -29,7 +30,7 @@ export const MeridiansSystem: React.FC<Props> = ({ active, progress }) => {
     if (!lineRef.current || !active) return
     
     // 流动动画
-    const material = lineRef.current.material as THREE.LineBasicMaterial
+    const material = lineRef.current.material as THREE.Material & { opacity: number }
     material.opacity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.3
   })
   

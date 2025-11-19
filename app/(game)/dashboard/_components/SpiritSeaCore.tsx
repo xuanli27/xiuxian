@@ -15,13 +15,11 @@ export const SpiritSeaCore: React.FC<Props> = ({ onMeditate, canBreakthrough }) 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isPressed, setIsPressed] = useState(false)
 
-  if (!player) return null
-
-  const progress = Math.min(100, (player.qi / player.maxQi) * 100)
-  const innerDemonLevel = player.innerDemon
+  const progress = player ? Math.min(100, (player.qi / player.maxQi) * 100) : 0
+  const innerDemonLevel = player?.innerDemon ?? 0
 
   useEffect(() => {
-    if (!canvasRef.current) return
+    if (!player || !canvasRef.current) return
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -30,7 +28,14 @@ export const SpiritSeaCore: React.FC<Props> = ({ onMeditate, canBreakthrough }) 
     canvas.height = window.innerHeight
 
     let animationId: number
-    let particles: any[] = []
+    const particles: {
+      x: number
+      y: number
+      vx: number
+      vy: number
+      size: number
+      life: number
+    }[] = []
 
     const render = () => {
       const w = canvas.width
@@ -108,7 +113,9 @@ export const SpiritSeaCore: React.FC<Props> = ({ onMeditate, canBreakthrough }) 
     render()
 
     return () => cancelAnimationFrame(animationId)
-  }, [progress, innerDemonLevel])
+  }, [player, progress, innerDemonLevel])
+
+  if (!player) return null
 
   const handleMouseDown = () => {
     setIsPressed(true)

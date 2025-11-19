@@ -1,13 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Card } from '@/components/ui';
-import { getTribulationDashboardData } from '@/features/tribulation/queries';
-import { startTribulation } from '@/features/tribulation/actions';
+import { getTribulationDashboardData, startTribulation } from '@/features/tribulation/actions';
 import type { Player } from '@prisma/client';
 import { toast } from 'sonner';
-import { Zap, Shield, Skull, Heart, Activity, Wind, Scroll, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Zap, Skull, Heart, Activity, Wind, Scroll, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
 
 interface Props {
@@ -24,7 +23,7 @@ export const Tribulation: React.FC<Props> = ({ player }) => {
 
   const { data: dashboard, isLoading } = useQuery({
     queryKey: ['tribulation-dashboard', player.id],
-    queryFn: () => getTribulationDashboardData(player.id),
+    queryFn: () => getTribulationDashboardData(),
   });
 
   const start = useMutation({
@@ -73,8 +72,8 @@ export const Tribulation: React.FC<Props> = ({ player }) => {
       }
 
       setIsAnimating(false);
-      queryClient.invalidateQueries({ queryKey: ['tribulation-dashboard', player.id] });
-      queryClient.invalidateQueries({ queryKey: ['player', player.id] });
+      queryClient.invalidateQueries({ queryKey: ['tribulation-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['player'] });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -223,7 +222,7 @@ export const Tribulation: React.FC<Props> = ({ player }) => {
                 <p>暂无记录</p>
               </div>
             ) : (
-              history.map((record, index) => (
+              history.map((record) => (
                 <div key={record.id} className="text-sm p-3 rounded-lg bg-surface-950/50 border border-surface-800 flex justify-between items-center">
                   <div>
                     <div className="flex items-center gap-2 mb-1">

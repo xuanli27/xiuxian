@@ -16,14 +16,14 @@ export const NavigationStation = ({ duration, onComplete }: { duration: number, 
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    let interval: any;
+    let interval: NodeJS.Timeout;
     if (activeTimer && timer > 0) {
        interval = setInterval(() => setTimer(t => Math.max(0, t - 1)), 1000);
     }
     return () => clearInterval(interval);
   }, [activeTimer, timer]);
 
-  const handleSiteClick = (site: any) => {
+  const handleSiteClick = (site: { name: string; url: string; gameType?: string }) => {
       setCurrentSite(site);
       if (!site.gameType || site.gameType === 'TIMER') {
         setActiveTimer(true);
@@ -264,7 +264,7 @@ export const NavigationStation = ({ duration, onComplete }: { duration: number, 
                                     {category.category}
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4">
-                                    {category.sites.map((site: any, sIdx) => (
+                                    {category.sites.map((site: { name: string; url: string; desc: string; gameType?: string }, sIdx) => (
                                         <button 
                                             key={sIdx}
                                             onClick={() => handleSiteClick(site)}

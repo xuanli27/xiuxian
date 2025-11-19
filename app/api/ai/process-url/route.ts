@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
         .replace(/\s+/g, ' ')
         .trim()
         .slice(0, 4000) // 限制长度
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json({ error: '无法访问该网址' }, { status: 400 })
     }
 

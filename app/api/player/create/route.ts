@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json({ success: true, player });
-    } catch (error: any) {
-      if (error.message === '玩家已存在') {
+    } catch (error) {
+      if (error instanceof Error && error.message === '玩家已存在') {
         return NextResponse.json(
           { error: '已创建角色' },
           { status: 400 }

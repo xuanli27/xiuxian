@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Crown, Scroll, TrendingUp, Lock, ShoppingBag, Coins, Building2, Store } from 'lucide-react';
+import { Crown, Scroll, TrendingUp, Lock, Coins, Building2, Store } from 'lucide-react';
 import { Button, Card, PageHeader } from '@/components/ui';
 import { IdentityCard } from './IdentityCard';
 import clsx from 'clsx';
@@ -58,7 +58,6 @@ export const SectHall: React.FC<Props> = ({ player }) => {
     }
   });
 
-  const currentPosition = positions?.find(p => p.rank === player.sectRank);
   const nextPosition = positions?.find(p => p.rank === SECT_CONFIG.ranks.names[player.sectRank]);
   const canPromote = sectStats && nextPosition && sectStats.totalContribution >= nextPosition.requiredContribution;
 
@@ -96,7 +95,7 @@ export const SectHall: React.FC<Props> = ({ player }) => {
                 <div className="text-center py-6 text-secondary-400 bg-secondary-400/10 rounded-2xl border border-secondary-400/20">
                   <Crown size={48} className="mx-auto mb-4 animate-bounce" />
                   <p className="text-lg font-bold">已至宗门巅峰</p>
-                  <p className="text-sm opacity-70 mt-1">"高处不胜寒，唯有更咸鱼"</p>
+                  <p className="text-sm opacity-70 mt-1">&quot;高处不胜寒，唯有更咸鱼&quot;</p>
                 </div>
               ) : (
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6">

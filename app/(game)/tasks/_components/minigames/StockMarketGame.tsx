@@ -5,7 +5,7 @@ import { Button } from '@/components/ui';
 export const StockMarketGame = ({ onComplete }: { onComplete: (s: boolean) => void }) => {
     const [data, setData] = useState<number[]>([]);
     const [gameState, setGameState] = useState<'WAITING' | 'BETTING' | 'RESULT'>('WAITING');
-    const [bet, setBet] = useState<'UP' | 'DOWN' | null>(null);
+    const [_bet, setBet] = useState<'UP' | 'DOWN' | null>(null);
     const [result, setResult] = useState<'WIN' | 'LOSE' | null>(null);
 
     // Initialize random chart data

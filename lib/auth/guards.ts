@@ -25,7 +25,7 @@ export async function getCurrentUserId() {
 /**
  * 检查用户权限
  */
-export async function checkPermission(permission: string) {
+export async function checkPermission(_permission: string) {
   const session = await requireAuth()
   // TODO: 实现权限检查逻辑
   return true
