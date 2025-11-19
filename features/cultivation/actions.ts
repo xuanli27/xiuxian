@@ -124,6 +124,48 @@ export async function startMeditation(input: {
 }
 
 /**
+ * 自动修炼(被动收益)
+ * 每次调用增加少量灵气，用于前端轮询或后台任务
+ */
+export async function autoCultivate() {
+  const userId = await getCurrentUserId()
+  const player = await prisma.player.findUnique({ where: { userId } })
+
+  if (!player) return null
+
+  // 基础自动修炼速度 (每分钟)
+  const baseRate = 2
+  // 灵根加成
+  const spiritRootMultiplier = player.spiritRoot === 'HEAVEN' ? 2 : player.spiritRoot === 'EARTH' ? 1.5 : 1
+
+  const expGained = Math.floor(baseRate * spiritRootMultiplier)
+
+  // 检查是否可以自动突破
+  const shouldAutoBreakthrough = player.qi + expGained >= player.maxQi * 0.95
+
+  if (shouldAutoBreakthrough) {
+    // 触发自动突破逻辑 (这里简化处理，实际可能需要更复杂的判定)
+    // 暂时只增加灵气，让前端提示突破
+  }
+
+  const updatedPlayer = await prisma.player.update({
+    where: { id: player.id },
+    data: {
+      qi: { increment: expGained }
+    }
+  })
+
+  revalidatePath('/dashboard')
+
+  return {
+    success: true,
+    expGained,
+    currentQi: updatedPlayer.qi,
+    maxQi: updatedPlayer.maxQi
+  }
+}
+
+/**
  * 开始闭关
  */
 export async function startRetreat(input: {

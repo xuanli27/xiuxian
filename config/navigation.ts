@@ -70,18 +70,13 @@ export const MAIN_NAV: NavItem[] = [
 ]
 
 // 游戏内主导航 - 精简为4个核心功能
+// 游戏内主导航 - 精简为4个核心功能
 export const GAME_NAV: NavItem[] = [
   {
     title: '紫府',
     href: '/dashboard',
-    icon: '🏔️',
-    description: '你的修仙世界中心',
-  },
-  {
-    title: '修炼',
-    href: '/cultivation',
     icon: '🧘',
-    description: '闭关修炼，提升境界',
+    description: '你的修仙世界中心',
   },
   {
     title: '任务',
@@ -94,6 +89,12 @@ export const GAME_NAV: NavItem[] = [
     href: '/cave',
     icon: '🏡',
     description: '经营洞府，炼制丹药',
+  },
+  {
+    title: '储物',
+    href: '/inventory',
+    icon: '💍',
+    description: '查看物品和装备',
   },
 ]
 

@@ -44,6 +44,7 @@ export type RealmInfo = {
   expCurrent: number
   breakthroughChance: number
   benefits: string[]
+  cultivationRate?: number
 }
 
 // 修炼统计

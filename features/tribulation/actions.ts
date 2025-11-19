@@ -30,21 +30,22 @@ import type { TribulationResult } from './types'
 export async function startTribulation(input: {
   playerId: number
   preparation?: any
+  autoTrigger?: boolean
 }): Promise<TribulationResult> {
   const userId = await getCurrentUserId()
-  
+
   // 验证输入
   const validated = startTribulationSchema.parse(input)
-  
+
   // 获取玩家
   const player = await prisma.player.findUnique({
     where: { id: validated.playerId, userId }
   })
-  
+
   if (!player) {
     throw new Error('玩家不存在')
   }
-  
+
   // 检查是否已是最高境界
   const nextRank = getNextRank(player.rank)
   if (!nextRank) {
@@ -58,7 +59,7 @@ export async function startTribulation(input: {
       message: '您已是仙人境界,无需渡劫!'
     }
   }
-  
+
   // 检查灵气是否足够
   if (player.qi < player.maxQi * 0.8) {
     return {
@@ -71,28 +72,28 @@ export async function startTribulation(input: {
       message: '灵气不足80%,无法开始渡劫!'
     }
   }
-  
+
   // 生成渡劫波次
   const totalWaves = calculateTribulationWaves(player.rank)
   const waves = generateTribulationWaves(player.rank)
-  
+
   // 模拟渡劫过程
   let health = 1000 // 玩家血量
   let wavesCompleted = 0
   let survived = true
-  
+
   // 计算成功率(基于灵气进度和心魔)
   const expProgress = player.qi / player.maxQi
   let baseChance = expProgress * 0.7
   const demonPenalty = player.innerDemon / 1000
   baseChance -= demonPenalty
   const successChance = Math.max(0.1, Math.min(0.9, baseChance))
-  
+
   // 随机判断每一波
   for (let i = 0; i < totalWaves; i++) {
     const wave = waves[i]
     const random = Math.random()
-    
+
     if (random < successChance) {
       // 通过这一波
       wavesCompleted++
@@ -106,9 +107,9 @@ export async function startTribulation(input: {
       }
     }
   }
-  
+
   const success = isTribulationSuccess(wavesCompleted, totalWaves)
-  
+
   // 更新玩家数据
   const updateData: any = {
     history: {
@@ -124,27 +125,27 @@ export async function startTribulation(input: {
       }
     }
   }
-  
+
   if (success) {
     // 渡劫成功
     const rewards = calculateTribulationRewards(player.rank, wavesCompleted)
-    
+
     updateData.rank = nextRank
     updateData.qi = 0 // 突破后灵气归零
     updateData.maxQi = Math.floor(player.maxQi * 2)
     updateData.spiritStones = {
       increment: rewards.spiritStones
     }
-    
+
     await prisma.player.update({
       where: { id: player.id },
       data: updateData
     })
-    
+
     revalidatePath('/tribulation')
     revalidatePath('/cultivation')
     revalidatePath('/dashboard')
-    
+
     return {
       success: true,
       realmBefore: player.rank,
@@ -158,22 +159,27 @@ export async function startTribulation(input: {
   } else {
     // 渡劫失败
     const penalty = calculateTribulationPenalty(player.rank, totalWaves - wavesCompleted)
-    
+
     updateData.qi = {
       decrement: Math.min(player.qi, penalty.expLost)
     }
     updateData.innerDemon = {
       increment: penalty.innerDemonGained
     }
-    
+
     await prisma.player.update({
       where: { id: player.id },
       data: updateData
     })
-    
+
     revalidatePath('/tribulation')
     revalidatePath('/cultivation')
-    
+
+    // 如果是自动触发的，可能需要返回特殊状态
+    if (input.autoTrigger) {
+      // 可以在这里添加自动触发失败的特殊处理
+    }
+
     return {
       success: false,
       realmBefore: player.rank,
@@ -182,7 +188,7 @@ export async function startTribulation(input: {
       wavesCompleted,
       totalWaves,
       penalties: penalty,
-      message: survived 
+      message: survived
         ? `渡劫失败!损失${penalty.expLost}灵气,心魔增加${penalty.innerDemonGained}`
         : '渡劫失败!重伤垂危...'
     }
@@ -198,15 +204,15 @@ export async function performTribulationAction(input: {
   itemId?: string
 }) {
   const userId = await getCurrentUserId()
-  
+
   // 验证输入
   const validated = tribulationActionSchema.parse(input)
-  
+
   // TODO: 实现交互式渡劫逻辑
   // 这需要在数据库中存储渡劫状态
-  
+
   revalidatePath('/tribulation')
-  
+
   return {
     success: true,
     message: '行动执行成功'
@@ -221,14 +227,14 @@ export async function abandonTribulation(input: {
   confirm: true
 }) {
   const userId = await getCurrentUserId()
-  
+
   // 验证输入
   const validated = abandonTribulationSchema.parse(input)
-  
+
   // TODO: 实现放弃渡劫逻辑
-  
+
   revalidatePath('/tribulation')
-  
+
   return {
     success: true,
     message: '已放弃渡劫'

@@ -146,27 +146,26 @@ export const TaskBoard: React.FC<Props> = ({ initialTasks }) => {
               </div>
 
               <div className="pt-4 border-t border-surface-800">
-                {task.status === 'PENDING' && (
+                {task.status === 'PENDING' ? (
                   <Button
-                    className="w-full"
-                    variant="secondary"
+                    className="w-full bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-500 hover:to-secondary-500 border-none shadow-lg shadow-primary-900/20"
                     onClick={() => accept.mutate(task.id)}
                     loading={accept.isPending && accept.variables === task.id}
                   >
-                    接受任务
+                    一键接取
                   </Button>
-                )}
-                {task.status === 'IN_PROGRESS' && (
-                  <Button
-                    className="w-full"
-                    variant="primary"
-                    onClick={() => complete.mutate(task.id)}
-                    loading={complete.isPending && complete.variables === task.id}
-                  >
-                    提交任务
-                  </Button>
-                )}
-                {task.status === 'COMPLETED' && (
+                ) : task.status === 'IN_PROGRESS' ? (
+                  <div className="w-full relative h-10 bg-surface-950 rounded-lg overflow-hidden border border-surface-800">
+                    <div className="absolute inset-0 flex items-center justify-center z-10 text-xs font-bold text-primary-300">
+                      任务进行中...
+                    </div>
+                    <div className="absolute inset-y-0 left-0 bg-primary-900/30 w-1/2 animate-pulse" />
+                    <Button
+                      className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
+                      onClick={() => complete.mutate(task.id)}
+                    />
+                  </div>
+                ) : (
                   <Button className="w-full" variant="ghost" disabled>
                     <CheckCircle2 size={16} className="mr-2" /> 已完成
                   </Button>
