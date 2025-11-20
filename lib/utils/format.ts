@@ -2,7 +2,7 @@
  * 格式化工具函数
  */
 
-import { SpiritRootType as PrismaSpiritRootType, SectRank as PrismaSectRank, Rank as PrismaRank } from '@prisma/client';
+import { SpiritRootType as PrismaSpiritRootType, SectRank as PrismaSectRank, Rank as PrismaRank } from '@/types/enums';
 
 // 灵根类型中文映射
 export const SPIRIT_ROOT_LABELS: Record<PrismaSpiritRootType, string> = {

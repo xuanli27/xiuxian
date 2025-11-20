@@ -1,4 +1,4 @@
-import type { Task, TaskType, TaskStatus, TaskDifficulty, TaskCategory } from '@prisma/client'
+import type { Task, TaskType, TaskStatus, TaskDifficulty, TaskCategory } from '@/types/database'
 
 /**
  * 任务相关类型定义

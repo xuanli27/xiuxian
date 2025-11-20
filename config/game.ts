@@ -2,7 +2,7 @@
  * 游戏配置
  */
 
-import type { Rank, SectRank } from '@prisma/client'
+import type { Rank, SectRank } from '@/types/enums'
 
 // 游戏基础配置
 export const GAME_CONFIG = {

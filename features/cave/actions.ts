@@ -1,8 +1,8 @@
 'use server'
 
 import { getPlayerCave as getPlayerCaveQuery, getCaveStats as getCaveStatsQuery } from './queries'
-import { prisma } from '@/lib/db/prisma'
-import { getCurrentUserId } from '@/lib/auth/guards'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
+import { getCurrentUserId } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
 import { calculateCaveUpgradeCost } from './utils'
 import type { Cave, CaveStats } from './types'
@@ -12,10 +12,13 @@ import type { Cave, CaveStats } from './types'
  */
 export async function getPlayerCave(): Promise<Cave | null> {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId },
-    select: { id: true }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
   
   if (!player) return null
   
@@ -27,10 +30,13 @@ export async function getPlayerCave(): Promise<Cave | null> {
  */
 export async function getCaveStats(): Promise<CaveStats> {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId },
-    select: { id: true }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
   
   if (!player) {
     return {
@@ -57,30 +63,37 @@ export async function getCaveStats(): Promise<CaveStats> {
  */
 export async function upgradeCave(input: { playerId: number }) {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId, id: input.playerId }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id, cave_level, spirit_stones')
+    .eq('user_id', userId)
+    .eq('id', input.playerId)
+    .single()
   
   if (!player) {
     throw new Error('玩家不存在')
   }
   
-  const cost = calculateCaveUpgradeCost(player.caveLevel)
+  const cost = calculateCaveUpgradeCost(player.cave_level)
   
-  if (player.spiritStones < cost.spiritStones) {
+  if (player.spirit_stones < cost.spiritStones) {
     throw new Error('灵石不足')
   }
   
-  const updatedPlayer = await prisma.player.update({
-    where: { id: player.id },
-    data: {
-      caveLevel: { increment: 1 },
-      spiritStones: { decrement: cost.spiritStones }
-    }
-  })
+  const { data: updatedPlayer } = await supabase
+    .from('players')
+    .update({
+      cave_level: player.cave_level + 1,
+      spirit_stones: player.spirit_stones - cost.spiritStones
+    })
+    .eq('id', player.id)
+    .select('cave_level')
+    .single()
   
   revalidatePath('/cave')
-  return { success: true, newLevel: updatedPlayer.caveLevel }
+  return { success: true, newLevel: updatedPlayer?.cave_level || player.cave_level + 1 }
 }
 
 /**
@@ -88,9 +101,13 @@ export async function upgradeCave(input: { playerId: number }) {
  */
 export async function craftItem(input: { recipeId: string }) {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
 
   if (!player) {
     throw new Error('玩家不存在')

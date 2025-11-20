@@ -1,4 +1,4 @@
-import type { Player } from '@prisma/client';
+import type { Player } from '@/types/database';
 
 /**
  * 事件触发器类型

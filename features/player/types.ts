@@ -1,15 +1,10 @@
-import { Player } from '@prisma/client'
+import type { Player } from '@/types/database'
 
 /**
  * 玩家相关类型定义
  */
 
-export type PlayerWithUser = Player & {
-  user: {
-    name: string | null
-    email: string | null
-  }
-}
+export type { Player }
 
 export type PlayerStats = {
   health: number

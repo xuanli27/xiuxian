@@ -1,4 +1,4 @@
-import type { Rank } from '@prisma/client'
+import type { Rank } from '@/types/enums'
 
 /**
  * 修炼系统工具函数

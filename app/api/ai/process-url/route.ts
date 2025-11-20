@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserId } from '@/lib/auth/guards'
-import { prisma } from '@/lib/db/prisma'
+import { getCurrentUserId } from '@/lib/auth/server'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
 import { generateAIText } from '@/lib/ai/client'
 
 export async function POST(request: NextRequest) {
   try {
     const userId = await getCurrentUserId()
     
-    const player = await prisma.player.findUnique({
-      where: { userId }
-    })
+    if (!userId) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 })
+    }
+    
+    const supabase = await createServerSupabaseClient()
+    
+    const { data: player } = await supabase
+      .from('players')
+      .select('id, qi')
+      .eq('user_id', userId)
+      .single()
     
     if (!player) {
       return NextResponse.json({ error: '玩家不存在' }, { status: 404 })
@@ -24,10 +32,10 @@ export async function POST(request: NextRequest) {
     // 检查并扣除资源
     const cost = action === 'summarize' ? 50 : 100
     if (player.qi < cost) {
-      return NextResponse.json({ 
-        error: '灵气不足', 
-        required: cost, 
-        current: player.qi 
+      return NextResponse.json({
+        error: '灵气不足',
+        required: cost,
+        current: player.qi
       }, { status: 400 })
     }
 
@@ -65,12 +73,14 @@ export async function POST(request: NextRequest) {
     const aiResult = await generateAIText(prompt)
 
     // 扣除灵气
-    await prisma.player.update({
-      where: { id: player.id },
-      data: {
-        qi: { decrement: cost }
-      }
-    })
+    const { error: updateError } = await supabase
+      .from('players')
+      .update({ qi: player.qi - cost })
+      .eq('id', player.id)
+    
+    if (updateError) {
+      console.error('更新灵气失败:', updateError)
+    }
 
     return NextResponse.json({
       success: true,

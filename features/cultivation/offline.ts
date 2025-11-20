@@ -2,24 +2,21 @@
  * 离线收益计算
  */
 
-import { prisma } from '@/lib/db/prisma'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
 import { calculateCultivationExp } from './utils'
-import type { Rank, SpiritRootType } from '@prisma/client'
+import type { Rank, SpiritRootType } from '@/types/enums'
 
 /**
  * 计算离线收益
  */
 export async function calculateOfflineRewards(playerId: number) {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: {
-      lastLoginTime: true,
-      spiritRoot: true,
-      rank: true,
-      caveLevel: true,
-      innerDemon: true,
-    }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('last_login_at, spirit_root, rank, cave_level, inner_demon')
+    .eq('id', playerId)
+    .single()
 
   if (!player) {
     return {
@@ -30,7 +27,7 @@ export async function calculateOfflineRewards(playerId: number) {
   }
 
   const now = new Date()
-  const lastLogin = new Date(player.lastLoginTime)
+  const lastLogin = new Date(player.last_login_at)
   const diffMs = now.getTime() - lastLogin.getTime()
   const diffMinutes = Math.floor(diffMs / (1000 * 60))
 
@@ -47,13 +44,13 @@ export async function calculateOfflineRewards(playerId: number) {
   const effectiveMinutes = Math.min(diffMinutes, 24 * 60)
 
   // 灵根品质影响
-  const spiritRootQuality = getSpiritRootQuality(player.spiritRoot)
+  const spiritRootQuality = getSpiritRootQuality(player.spirit_root as SpiritRootType)
   
   // 洞府加成
-  const caveBonus = 1 + (player.caveLevel - 1) * 0.1
+  const caveBonus = 1 + (player.cave_level - 1) * 0.1
   
   // 心魔惩罚
-  const demonPenalty = player.innerDemon > 50 ? 0.5 : 1.0
+  const demonPenalty = player.inner_demon > 50 ? 0.5 : 1.0
 
   // 离线修炼速度是正常的50%
   const offlineRate = 0.5
@@ -70,7 +67,7 @@ export async function calculateOfflineRewards(playerId: number) {
   return {
     qi: totalQi,
     duration: effectiveMinutes,
-    message: generateOfflineMessage(effectiveMinutes, totalQi, player.rank)
+    message: generateOfflineMessage(effectiveMinutes, totalQi, player.rank as Rank)
   }
 }
 
@@ -116,34 +113,40 @@ function generateOfflineMessage(minutes: number, qi: number, rank: Rank): string
  */
 export async function applyOfflineRewards(playerId: number) {
   const rewards = await calculateOfflineRewards(playerId)
+  const supabase = await createServerSupabaseClient()
   
   if (rewards.qi > 0) {
-    await prisma.player.update({
-      where: { id: playerId },
-      data: {
-        qi: {
-          increment: rewards.qi
-        },
-        lastLoginTime: new Date(),
-        history: {
-          push: {
-            type: 'OFFLINE_REWARD',
-            timestamp: new Date().toISOString(),
-            duration: rewards.duration,
-            qi: rewards.qi,
-            message: rewards.message
-          }
-        }
-      }
-    })
+    const { data: player } = await supabase
+      .from('players')
+      .select('qi, history')
+      .eq('id', playerId)
+      .single()
+    
+    if (player) {
+      const history = Array.isArray(player.history) ? player.history : []
+      history.push({
+        type: 'OFFLINE_REWARD',
+        timestamp: new Date().toISOString(),
+        duration: rewards.duration,
+        qi: rewards.qi,
+        message: rewards.message
+      })
+      
+      await supabase
+        .from('players')
+        .update({
+          qi: player.qi + rewards.qi,
+          last_login_at: new Date().toISOString(),
+          history
+        })
+        .eq('id', playerId)
+    }
   } else {
     // 只更新登录时间
-    await prisma.player.update({
-      where: { id: playerId },
-      data: {
-        lastLoginTime: new Date()
-      }
-    })
+    await supabase
+      .from('players')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', playerId)
   }
 
   return rewards

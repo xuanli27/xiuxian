@@ -9,7 +9,8 @@ import clsx from 'clsx';
 import { getSectInfo, getPlayerSectStats, getSectPositions, requestPromotion, purchaseItem } from '@/features/sect/actions';
 import { SECT_CONFIG } from '@/config/game';
 import { SHOP_ITEMS } from '@/features/sect/data/shop';
-import type { Player } from '@prisma/client';
+import type { Player } from '@/types/database';
+import type { SectRank } from '@/types/enums';
 import { toast } from 'sonner';
 
 interface Props {
@@ -58,7 +59,7 @@ export const SectHall: React.FC<Props> = ({ player }) => {
     }
   });
 
-  const nextPosition = positions?.find(p => p.rank === SECT_CONFIG.ranks.names[player.sectRank]);
+  const nextPosition = positions?.find(p => p.rank === SECT_CONFIG.ranks.names[player.sect_rank as SectRank]);
   const canPromote = sectStats && nextPosition && sectStats.totalContribution >= nextPosition.requiredContribution;
 
   return (

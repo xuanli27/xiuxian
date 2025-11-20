@@ -1,27 +1,18 @@
-import { auth } from '@/lib/auth/auth'
 import { redirect } from 'next/navigation'
+import { getServerUser } from '@/lib/auth/server'
 import { getPlayerByUserId } from '@/features/player/queries'
 import { SectHall } from './_components/SectHall'
 
 /**
- * Sect页面 - 宗门大殿
+ * Sect页面 - 宗门
  */
 export default async function SectPage() {
-  const session = await auth()
-  
-  if (!session?.user) {
-    redirect('/login')
-  }
-
-  const player = await getPlayerByUserId(session.user.id!)
+  const user = await getServerUser()
+  const player = await getPlayerByUserId(user.id)
   
   if (!player) {
-    redirect('/onboarding')
+    redirect('/register')
   }
 
-  return (
-    <SectHall
-      player={player}
-    />
-  )
+  return <SectHall player={player} />
 }

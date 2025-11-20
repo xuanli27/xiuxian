@@ -1,5 +1,5 @@
-import { auth } from '@/lib/auth/auth'
 import { redirect } from 'next/navigation'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
 import { getPlayerByUserId } from '@/features/player/queries'
 import { Tribulation } from './_components/Tribulation'
 
@@ -7,16 +7,17 @@ import { Tribulation } from './_components/Tribulation'
  * Tribulation页面 - 渡劫
  */
 export default async function TribulationPage() {
-  const session = await auth()
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
   
-  if (!session?.user) {
+  if (!user) {
     redirect('/login')
   }
 
-  const player = await getPlayerByUserId(session.user.id!)
+  const player = await getPlayerByUserId(user.id)
   
   if (!player) {
-    redirect('/onboarding')
+    redirect('/register')
   }
 
   return (

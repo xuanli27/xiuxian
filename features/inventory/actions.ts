@@ -1,8 +1,8 @@
 'use server'
 
 import { getPlayerInventory as getPlayerInventoryQuery } from './queries'
-import { prisma } from '@/lib/db/prisma'
-import { getCurrentUserId } from '@/lib/auth/guards'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
+import { getCurrentUserId } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
 import type { InventoryItem } from './types'
 
@@ -11,10 +11,13 @@ import type { InventoryItem } from './types'
  */
 export async function getPlayerInventory(): Promise<InventoryItem[]> {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId },
-    select: { id: true }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
   
   if (!player) return []
   
@@ -26,9 +29,13 @@ export async function getPlayerInventory(): Promise<InventoryItem[]> {
  */
 export async function useItem(input: { itemId: string }) {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
   
   if (!player) {
     throw new Error('玩家不存在')
@@ -45,9 +52,13 @@ export async function useItem(input: { itemId: string }) {
  */
 export async function equipItem(input: { itemId: string; slot: string }) {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
   
   if (!player) {
     throw new Error('玩家不存在')
@@ -64,9 +75,13 @@ export async function equipItem(input: { itemId: string; slot: string }) {
  */
 export async function unequipItem(input: { slot: string }) {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
 
   if (!player) {
     throw new Error('玩家不存在')

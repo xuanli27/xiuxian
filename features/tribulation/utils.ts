@@ -1,4 +1,4 @@
-import type { Rank } from '@prisma/client'
+import type { Rank } from '@/types/enums'
 import { TribulationType, TribulationDifficulty, type TribulationWave } from './types'
 
 /**

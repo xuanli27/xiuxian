@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Sparkles, ListTodo, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
-import type { Task } from '@prisma/client'
+import type { Task } from '@/types/database'
 
 interface QuickAccessCardProps {
   currentTasks: Task[]

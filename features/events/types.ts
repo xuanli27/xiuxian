@@ -1,29 +1,28 @@
-import { z } from 'zod';
-import { processEventChoiceSchema, aiGeneratedEventSchema } from './schemas';
-import type { Rank } from '@prisma/client';
+import { z } from 'zod'
+import { processEventChoiceSchema, aiGeneratedEventSchema } from './schemas'
+import type { Rank } from '@/types/database'
 
 /**
- * The type for an AI-generated event, inferred from the Zod schema.
- * This ensures type safety between the AI generation, backend processing, and frontend display.
+ * AI生成事件类型
  */
-export type AIEvent = z.infer<typeof aiGeneratedEventSchema>;
+export type AIEvent = z.infer<typeof aiGeneratedEventSchema>
 
 /**
- * Input type for processing a player's choice in an event.
+ * 处理事件选择的输入类型
  */
-export type ProcessEventChoiceInput = z.infer<typeof processEventChoiceSchema>;
+export type ProcessEventChoiceInput = z.infer<typeof processEventChoiceSchema>
 
 /**
- * Event context for AI generation
+ * 事件上下文(用于AI生成)
  */
 export type EventContext = {
-  playerId: number;
+  playerId: number
   playerState: {
-    rank: Rank;
-    level: number;
-    qi: number;
-    spiritStones: number;
-    mindState: string;
-  };
-  recentEvents: string[];
-};
+    rank: Rank
+    level: number
+    qi: number
+    spiritStones: number
+    mindState: string
+  }
+  recentEvents: string[]
+}

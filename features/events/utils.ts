@@ -1,5 +1,5 @@
 import type { EventContext } from './types';
-import type { Player } from '@prisma/client';
+import type { Player } from '@/types/database';
 
 export function buildEventContext(
   player: Player,
@@ -11,8 +11,8 @@ export function buildEventContext(
       rank: player.rank,
       level: player.level,
       qi: player.qi,
-      spiritStones: player.spiritStones,
-      mindState: player.mindState,
+      spiritStones: player.spirit_stones,
+      mindState: player.mind_state,
     },
     recentEvents,
   };

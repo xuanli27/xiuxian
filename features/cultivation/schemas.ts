@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Rank } from '@prisma/client'
+import { Rank } from '@/types/enums'
 
 /**
  * 修炼系统数据验证Schema

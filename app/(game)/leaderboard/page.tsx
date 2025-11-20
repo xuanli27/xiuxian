@@ -1,5 +1,5 @@
-import { auth } from '@/lib/auth/auth'
 import { redirect } from 'next/navigation'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
 import { getLeaderboard } from '@/features/leaderboard/queries'
 import { LeaderboardCategory } from '@/features/leaderboard/types'
 import { Leaderboard } from './_components/Leaderboard'
@@ -8,9 +8,10 @@ import { Leaderboard } from './_components/Leaderboard'
  * Leaderboard页面 - 排行榜
  */
 export default async function LeaderboardPage() {
-  const session = await auth()
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
   
-  if (!session?.user) {
+  if (!user) {
     redirect('/login')
   }
 

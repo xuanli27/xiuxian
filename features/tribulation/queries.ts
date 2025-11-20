@@ -1,11 +1,12 @@
 import { cache } from 'react'
-import { prisma } from '@/lib/db/prisma'
-import type { Rank } from '@prisma/client'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
 import type {
   TribulationHistory,
   TribulationStats,
   TribulationPreparation
 } from './types'
+
+type Rank = 'MORTAL' | 'QI_REFINING' | 'FOUNDATION' | 'GOLDEN_CORE' | 'NASCENT_SOUL' | 'SPIRIT_SEVERING' | 'VOID_REFINING' | 'MAHAYANA' | 'IMMORTAL'
 
 /**
  * 渡劫系统数据查询函数
@@ -18,10 +19,13 @@ export const getTribulationHistory = cache(async (
   playerId: number,
   limit: number = 20
 ): Promise<TribulationHistory[]> => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: { history: true }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('history')
+    .eq('id', playerId)
+    .single()
 
   if (!player) return []
 
@@ -87,15 +91,13 @@ export const getTribulationStats = cache(async (
 export const getTribulationPreparation = cache(async (
   playerId: number
 ): Promise<TribulationPreparation> => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: {
-      rank: true,
-      qi: true,
-      maxQi: true,
-      innerDemon: true,
-    }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('rank, qi, max_qi, inner_demon')
+    .eq('id', playerId)
+    .single()
 
   if (!player) {
     return {
@@ -120,16 +122,16 @@ export const getTribulationPreparation = cache(async (
     IMMORTAL: 8,
   }
 
-  const level = rankLevels[player.rank]
+  const level = rankLevels[player.rank as Rank]
   const recommendedHealth = 500 + level * 200
   const recommendedDefense = 50 + level * 30
 
   // 计算成功率
-  const expProgress = player.maxQi > 0 ? player.qi / player.maxQi : 0
+  const expProgress = player.max_qi > 0 ? player.qi / player.max_qi : 0
   let baseChance = expProgress * 0.6
 
   // 心魔减少成功率
-  const demonPenalty = player.innerDemon / 1000
+  const demonPenalty = player.inner_demon / 1000
   baseChance -= demonPenalty
 
   const successChance = Math.max(0.1, Math.min(0.9, baseChance))
@@ -146,7 +148,7 @@ export const getTribulationPreparation = cache(async (
   if (expProgress < 0.9) {
     risks.push('灵气不足,建议继续修炼')
   }
-  if (player.innerDemon > 50) {
+  if (player.inner_demon > 50) {
     risks.push('心魔过重,建议先稳固境界')
   }
   if (successChance < 0.5) {
@@ -166,14 +168,13 @@ export const getTribulationPreparation = cache(async (
  * 检查是否需要渡劫
  */
 export const needsTribulation = cache(async (playerId: number): Promise<boolean> => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: {
-      rank: true,
-      qi: true,
-      maxQi: true,
-    }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('rank, qi, max_qi')
+    .eq('id', playerId)
+    .single()
 
   if (!player) return false
 
@@ -181,7 +182,7 @@ export const needsTribulation = cache(async (playerId: number): Promise<boolean>
   if (player.rank === 'IMMORTAL') return false
 
   // 灵气达到90%以上需要渡劫突破
-  return player.qi >= player.maxQi * 0.9
+  return player.qi >= player.max_qi * 0.9
 })
 
 /**

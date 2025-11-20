@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { prisma } from '@/lib/db/prisma'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
 import type { InventoryItem, EquipmentSet, InventoryStats, Item } from './types'
 
 /**
@@ -10,10 +10,13 @@ import type { InventoryItem, EquipmentSet, InventoryStats, Item } from './types'
  * 获取玩家背包
  */
 export const getPlayerInventory = cache(async (playerId: number): Promise<InventoryItem[]> => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: { inventory: true }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('inventory')
+    .eq('id', playerId)
+    .single()
 
   if (!player) return []
 
@@ -52,10 +55,13 @@ export const getPlayerInventory = cache(async (playerId: number): Promise<Invent
  * 获取玩家装备
  */
 export const getPlayerEquipment = cache(async (playerId: number): Promise<EquipmentSet> => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: { equipped: true }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('equipped')
+    .eq('id', playerId)
+    .single()
 
   if (!player) return {}
 

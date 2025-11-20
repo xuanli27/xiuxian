@@ -58,7 +58,7 @@ export const Dashboard: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-content-400">灵气</span>
-          <span className="text-primary-300 font-mono">{Math.floor(player.qi)} / {player.maxQi}</span>
+          <span className="text-primary-300 font-mono">{Math.floor(player.qi)} / {player.max_qi}</span>
         </div>
       </div>
 
@@ -67,7 +67,7 @@ export const Dashboard: React.FC = () => {
         <QiCirculation3D
           isCultivating={true}
           qi={player.qi}
-          maxQi={player.maxQi}
+          maxQi={player.max_qi}
           realm={`${realmInfo.name} ${player.level}重`}
         />
       </div>

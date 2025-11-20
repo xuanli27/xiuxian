@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Card } from '@/components/ui';
 import { getTribulationDashboardData, startTribulation } from '@/features/tribulation/actions';
-import type { Player } from '@prisma/client';
+import type { Player } from '@/types/database';
 import { toast } from 'sonner';
 import { Zap, Skull, Heart, Activity, Wind, Scroll, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';

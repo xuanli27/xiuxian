@@ -15,8 +15,8 @@ export const SpiritSeaCore: React.FC<Props> = ({ onMeditate, canBreakthrough }) 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isPressed, setIsPressed] = useState(false)
 
-  const progress = player ? Math.min(100, (player.qi / player.maxQi) * 100) : 0
-  const innerDemonLevel = player?.innerDemon ?? 0
+  const progress = player ? Math.min(100, (player.qi / player.max_qi) * 100) : 0
+  const innerDemonLevel = player?.inner_demon ?? 0
 
   useEffect(() => {
     if (!player || !canvasRef.current) return
@@ -159,7 +159,7 @@ export const SpiritSeaCore: React.FC<Props> = ({ onMeditate, canBreakthrough }) 
 
         {/* 修为进度 */}
         <div className="mt-6 text-center text-content-400 text-xs font-mono bg-surface-900/50 px-3 py-1 rounded-full border border-surface-700 inline-block w-full">
-          修为: {Math.floor(player.qi)} / {player.maxQi}
+          修为: {Math.floor(player.qi)} / {player.max_qi}
         </div>
       </div>
 
@@ -174,7 +174,7 @@ export const SpiritSeaCore: React.FC<Props> = ({ onMeditate, canBreakthrough }) 
           </div>
           <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
             <span className="text-xs font-bold text-content-400 group-hover:text-primary-300 transition-colors bg-surface-950/80 px-2 py-0.5 rounded-full">
-              洞府 {player.caveLevel}级
+              洞府 {player.cave_level}级
             </span>
           </div>
         </div>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui';
 import { getCurrentPlayer } from '@/features/player/actions';
 import { getCurrentPlayerRealmInfo, getCurrentCultivationStats } from '@/features/cultivation/actions';
 import { startMeditation, attemptBreakthrough } from '@/features/cultivation/actions';
-import type { Player } from '@prisma/client';
+import type { Player } from '@/types/database';
 import type { RealmInfo } from '@/features/cultivation/types';
 import { toast } from 'sonner';
 import { Sparkles, Zap, Activity, Hourglass } from 'lucide-react';
@@ -84,8 +84,8 @@ export const Cultivation: React.FC<Props> = ({ initialPlayer, initialRealmInfo, 
     }
   });
 
-  const canBreakthrough = player && player.qi >= player.maxQi;
-  const progress = player ? (player.qi / player.maxQi) * 100 : 0;
+  const canBreakthrough = player && player.qi >= player.max_qi;
+  const progress = player ? (player.qi / player.max_qi) * 100 : 0;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -122,7 +122,7 @@ export const Cultivation: React.FC<Props> = ({ initialPlayer, initialRealmInfo, 
               <div className="space-y-2 mb-6">
                 <div className="flex justify-between text-sm font-medium">
                   <span className="text-content-400">修为进度</span>
-                  <span className="text-primary-300">{Math.floor(player?.qi ?? 0)} / {player?.maxQi}</span>
+                  <span className="text-primary-300">{Math.floor(player?.qi ?? 0)} / {player?.max_qi}</span>
                 </div>
                 <div className="h-4 bg-surface-950 rounded-full overflow-hidden border border-surface-800 relative">
                   <div

@@ -59,7 +59,7 @@ export const CraftingStation: React.FC = () => {
 
       <div className="grid gap-5">
         {RECIPES.map(recipe => {
-          const canAffordStones = (player.spiritStones || 0) >= recipe.baseCost;
+          const canAffordStones = (player.spirit_stones || 0) >= recipe.baseCost;
           let canAffordMats = true;
           for (const [id, count] of Object.entries(recipe.materials)) {
             if ((playerMaterials[id] || 0) < count) canAffordMats = false;
@@ -114,7 +114,7 @@ export const CraftingStation: React.FC = () => {
               </div>
 
               <div className="bg-surface-900/50 rounded-xl p-3 text-xs space-y-2 border border-white/5">
-                <CraftCostItem name="灵石" current={player.spiritStones || 0} cost={recipe.baseCost} icon="💎" />
+                <CraftCostItem name="灵石" current={player.spirit_stones || 0} cost={recipe.baseCost} icon="💎" />
                 {Object.entries(recipe.materials).map(([matId, count]) => {
                   const mat = MATERIALS.find(m => m.id === matId);
                   return <CraftCostItem key={matId} name={mat?.name || matId} current={playerMaterials[matId] || 0} cost={count} icon={mat?.icon || '📦'} />;

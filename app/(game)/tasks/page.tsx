@@ -1,31 +1,21 @@
-import { auth } from '@/lib/auth/auth'
 import { redirect } from 'next/navigation'
+import { getServerUser } from '@/lib/auth/server'
 import { getPlayerByUserId } from '@/features/player/queries'
-import { getPlayerTasks } from '@/features/tasks/queries'
+import { getAvailableTasks } from '@/features/tasks/queries'
 import { TaskBoard } from './_components/TaskBoard'
 
 /**
- * Tasks页面 - 任务大厅
+ * Tasks页面 - 认证由中间件处理
  */
 export default async function TasksPage() {
-  const session = await auth()
-  
-  if (!session?.user) {
-    redirect('/login')
-  }
-
-  const player = await getPlayerByUserId(session.user.id)
+  const user = await getServerUser()
+  const player = await getPlayerByUserId(user.id)
   
   if (!player) {
-    redirect('/onboarding')
+    redirect('/register')
   }
 
-  // 获取玩家任务列表
-  const tasks = await getPlayerTasks(player.id)
+  const tasks = await getAvailableTasks()
 
-  return (
-    <TaskBoard
-      initialTasks={tasks}
-    />
-  )
+  return <TaskBoard initialTasks={tasks} />
 }
