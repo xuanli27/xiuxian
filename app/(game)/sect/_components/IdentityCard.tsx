@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { Crown } from 'lucide-react';
-import type { Player } from '@/types/enums';
+import type { Player } from '@/types/database';
 import { formatSectRank } from '@/lib/utils/format';
+import type { SectRank } from '@/types/enums';
 
 interface Props {
   player: Player
@@ -48,7 +49,7 @@ export const IdentityCard: React.FC<Props> = ({ player }) => {
 
                   <h2 className="text-3xl font-xianxia text-content-100 mb-1 drop-shadow-md">{player.name}</h2>
                   <div className="px-4 py-1 bg-surface-900 rounded-full border border-secondary-500/30 text-secondary-400 text-xs font-bold tracking-wider shadow-inner mb-8">
-                      {formatSectRank(player.sectRank)}
+                      {formatSectRank(player.sect_rank as SectRank)}
                   </div>
 
                   <div className="w-full mt-auto">

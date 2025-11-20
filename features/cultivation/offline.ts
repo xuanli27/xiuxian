@@ -14,7 +14,7 @@ export async function calculateOfflineRewards(playerId: number) {
   
   const { data: player } = await supabase
     .from('players')
-    .select('last_login_time, spirit_root, rank, cave_level, inner_demon')
+    .select('last_login_at, spirit_root, rank, cave_level, inner_demon')
     .eq('id', playerId)
     .single()
 
@@ -27,7 +27,7 @@ export async function calculateOfflineRewards(playerId: number) {
   }
 
   const now = new Date()
-  const lastLogin = new Date(player.last_login_time)
+  const lastLogin = new Date(player.last_login_at)
   const diffMs = now.getTime() - lastLogin.getTime()
   const diffMinutes = Math.floor(diffMs / (1000 * 60))
 
@@ -136,7 +136,7 @@ export async function applyOfflineRewards(playerId: number) {
         .from('players')
         .update({
           qi: player.qi + rewards.qi,
-          last_login_time: new Date().toISOString(),
+          last_login_at: new Date().toISOString(),
           history
         })
         .eq('id', playerId)
@@ -145,7 +145,7 @@ export async function applyOfflineRewards(playerId: number) {
     // 只更新登录时间
     await supabase
       .from('players')
-      .update({ last_login_time: new Date().toISOString() })
+      .update({ last_login_at: new Date().toISOString() })
       .eq('id', playerId)
   }
 

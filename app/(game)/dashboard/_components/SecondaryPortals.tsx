@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { SECONDARY_NAV } from '@/config/navigation'
-import type { Player } from '@/types/enums'
+import type { Player } from '@/types/database'
 import clsx from 'clsx'
 
 interface Props {

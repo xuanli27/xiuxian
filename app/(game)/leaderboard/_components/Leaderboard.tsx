@@ -51,12 +51,12 @@ export const Leaderboard: React.FC<Props> = ({ initialLeaderboardData }) => {
           </thead>
           <tbody>
             {leaderboardData?.map((entry) => (
-              <tr key={entry.playerId} className="border-b border-border-base last:border-b-0 hover:bg-surface-700/50">
+              <tr key={entry.player_id} className="border-b border-border-base last:border-b-0 hover:bg-surface-700/50">
                 <td className="p-4 font-bold flex items-center gap-2">
                   {entry.ranking === 1 ? <Crown className="text-yellow-400" /> : entry.ranking}
                   <RankChange change={entry.rankChange} />
                 </td>
-                <td className="p-4">{entry.playerName}</td>
+                <td className="p-4">{entry.player_name}</td>
                 <td className="p-4 font-mono">
                   {renderValue(entry, category)}
                 </td>
@@ -84,11 +84,11 @@ const renderValue = (entry: LeaderboardEntry, category: LeaderboardCategory) => 
     case 'REALM':
       return `${entry.rank} ${entry.level}级`;
     case 'POWER':
-      return `${Number(entry.powerScore)} 战力`;
+      return `${Number(entry.power_score)} 战力`;
     case 'WEALTH':
-      return `${Number(entry.wealthScore)} 灵石`;
+      return `${Number(entry.wealth_score)} 灵石`;
     case 'CONTRIBUTION':
-      return `${Number(entry.contributionScore)} 贡献`;
+      return `${Number(entry.contribution_score)} 贡献`;
     default:
       return '-';
   }

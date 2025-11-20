@@ -1,10 +1,13 @@
 import { createServerSupabaseClient } from '@/lib/db/supabase'
 import { redirect } from 'next/navigation'
 
-export async function getCurrentUserId(): Promise<string | null> {
+export async function getCurrentUserId(): Promise<string> {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
-  return user?.id || null
+  if (!user?.id) {
+    throw new Error('未登录')
+  }
+  return user.id
 }
 
 export async function requireAuth(): Promise<string> {

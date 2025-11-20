@@ -16,6 +16,7 @@ import {
 } from './utils'
 import type { BreakthroughResult, RealmInfo, CultivationStats } from './types'
 import { getPlayerRealmInfo, getCultivationStats } from './queries'
+import type { Rank } from '@/types/enums'
 
 /**
  * Cultivation Server Actions
@@ -262,7 +263,7 @@ export async function attemptBreakthrough(input: {
   
   const { data: player } = await supabase
     .from('players')
-    .select('id, rank, qi, max_qi, spirit_stones, history')
+    .select('id, rank, qi, max_qi, spirit_stones, inner_demon, history')
     .eq('id', validated.playerId)
     .eq('user_id', userId)
     .single()
@@ -271,12 +272,14 @@ export async function attemptBreakthrough(input: {
     throw new Error('玩家不存在')
   }
 
+  const currentRank = player.rank as Rank
+
   // 检查是否已经是最高境界
-  const nextRank = getNextRank(player.rank)
+  const nextRank = getNextRank(currentRank)
   if (!nextRank) {
     return {
       success: false,
-      realmBefore: player.rank,
+      realmBefore: currentRank,
       realmAfter: null,
       expUsed: 0,
       message: '您已达到仙人境界,无法继续突破!'
@@ -292,7 +295,7 @@ export async function attemptBreakthrough(input: {
   if (expProgress < 0.8) {
     return {
       success: false,
-      realmBefore: player.rank,
+      realmBefore: currentRank,
       realmAfter: null,
       expUsed: 0,
       message: '灵气不足,需要达到80%才能尝试突破!'
@@ -300,13 +303,13 @@ export async function attemptBreakthrough(input: {
   }
 
   // 计算消耗
-  const cost = calculateBreakthroughCost(player.rank)
+  const cost = calculateBreakthroughCost(currentRank)
 
   // 检查资源是否足够
   if (player.spirit_stones < cost.spiritStones) {
     return {
       success: false,
-      realmBefore: player.rank,
+      realmBefore: currentRank,
       realmAfter: null,
       expUsed: 0,
       message: `灵石不足!需要${cost.spiritStones}灵石`
@@ -325,7 +328,7 @@ export async function attemptBreakthrough(input: {
     history.push({
       type: 'BREAKTHROUGH',
       timestamp: new Date().toISOString(),
-      realmBefore: player.rank,
+      realmBefore: currentRank,
       realmAfter: nextRank,
       success: true,
       successChance: Math.floor(successChance * 100)
@@ -347,7 +350,7 @@ export async function attemptBreakthrough(input: {
 
     return {
       success: true,
-      realmBefore: player.rank,
+      realmBefore: currentRank,
       realmAfter: nextRank,
       expUsed: player.qi,
       message: `恭喜!突破成功,晋升${nextRank}!`
@@ -360,7 +363,7 @@ export async function attemptBreakthrough(input: {
     history.push({
       type: 'BREAKTHROUGH',
       timestamp: new Date().toISOString(),
-      realmBefore: player.rank,
+      realmBefore: currentRank,
       realmAfter: null,
       success: false,
       expLost: expLoss,
@@ -371,7 +374,7 @@ export async function attemptBreakthrough(input: {
       .from('players')
       .update({
         qi: player.qi - expLoss,
-        inner_demon: (player as any).inner_demon + 10,
+        inner_demon: player.inner_demon + 10,
         spirit_stones: player.spirit_stones - cost.spiritStones,
         history
       })
@@ -382,7 +385,7 @@ export async function attemptBreakthrough(input: {
 
     return {
       success: false,
-      realmBefore: player.rank,
+      realmBefore: currentRank,
       realmAfter: null,
       expUsed: expLoss,
       message: `突破失败!损失${expLoss}灵气,心魔增加`

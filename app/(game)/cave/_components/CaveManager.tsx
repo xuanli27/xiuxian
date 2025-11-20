@@ -8,7 +8,7 @@ import clsx from 'clsx';
 import { getPlayerCave, getCaveStats, upgradeCave } from '@/features/cave/actions';
 import { CAVE_CONFIG } from '@/config/game';
 import { calculateCaveUpgradeCost } from '@/features/cave/utils';
-import type { Player } from '@/types/enums';
+import type { Player } from '@/types/database';
 import type { Cave } from '@/features/cave/types';
 
 interface Props {

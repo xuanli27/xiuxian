@@ -516,3 +516,14 @@ export type Enums<
   : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
   ? PublicSchema["Enums"][PublicEnumNameOrOptions]
   : never
+
+// 导出常用类型
+export type Player = Tables<'players'>
+export type Task = Tables<'tasks'>
+export type Season = Tables<'seasons'>
+export type LeaderboardEntry = Tables<'leaderboard'>
+export type Rank = string
+export type TaskType = string
+export type TaskStatus = string
+export type TaskDifficulty = string
+export type TaskCategory = string

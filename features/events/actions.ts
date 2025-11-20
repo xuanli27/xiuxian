@@ -7,6 +7,7 @@ import { aiGeneratedEventSchema } from './schemas'
 import { generateNextEvent } from '@/lib/ai/generators/event-generator'
 import { getCurrentUserId } from '@/lib/auth/supabase-auth'
 import { z } from 'zod'
+import type { InventoryData, StatusEffect } from '@/types/json-fields'
 
 type AIEvent = z.infer<typeof aiGeneratedEventSchema>
 
@@ -81,8 +82,15 @@ export async function processEventChoice(input: { event: AIEvent, choiceId: stri
   if (!choice) throw new Error('Invalid choice')
 
   let narration = `你选择了"${choice.text}"。`
-  const playerUpdates: any = {}
-  const statusEffectsToCreate: any[] = []
+  const playerUpdates: Record<string, unknown> = {}
+  const statusEffectsToCreate: Array<{
+    player_id: number
+    effect_id: string
+    name: string
+    description: string
+    modifiers: Record<string, number>
+    expires_at: string | null
+  }> = []
 
   for (const outcome of choice.outcomes) {
     narration += ` ${outcome.description}`
@@ -97,19 +105,19 @@ export async function processEventChoice(input: { event: AIEvent, choiceId: stri
         playerUpdates.inner_demon = (player.inner_demon || 0) + (outcome.value as number)
         break
       case 'item':
-        const currentInventory = (player.inventory as Record<string, number>) || {}
+        const currentInventory = (player.inventory as unknown as Record<string, number>) || {}
         const itemId = outcome.value as string
         currentInventory[itemId] = (currentInventory[itemId] || 0) + 1
         playerUpdates.inventory = currentInventory
         break
       case 'statusEffect':
-        const effect = outcome.value as any
+        const effect = outcome.value as unknown as StatusEffect
         statusEffectsToCreate.push({
           player_id: player.id,
-          effect_id: effect.id,
+          effect_id: effect.effectId,
           name: effect.name,
           description: effect.description,
-          modifiers: effect.modifiers || {},
+          modifiers: effect.modifiers as Record<string, number>,
           expires_at: effect.duration ? new Date(Date.now() + effect.duration * 1000).toISOString() : null,
         })
         break
@@ -148,7 +156,7 @@ export async function processEventChoice(input: { event: AIEvent, choiceId: stri
       description: event.description,
       choice_id: choice.id,
       choice_text: choice.text,
-      result: { narration, updates: playerUpdates, effects: statusEffectsToCreate },
+      result: JSON.parse(JSON.stringify({ narration, updates: playerUpdates, effects: statusEffectsToCreate })),
     })
 
   if (logError) {

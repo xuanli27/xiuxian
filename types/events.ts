@@ -1,4 +1,4 @@
-import type { Player } from '@/types/enums';
+import type { Player } from '@/types/database';
 
 /**
  * 事件触发器类型

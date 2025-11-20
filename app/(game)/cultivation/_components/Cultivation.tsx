@@ -6,7 +6,7 @@ import { Button } from '@/components/ui';
 import { getCurrentPlayer } from '@/features/player/actions';
 import { getCurrentPlayerRealmInfo, getCurrentCultivationStats } from '@/features/cultivation/actions';
 import { startMeditation, attemptBreakthrough } from '@/features/cultivation/actions';
-import type { Player } from '@/types/enums';
+import type { Player } from '@/types/database';
 import type { RealmInfo } from '@/features/cultivation/types';
 import { toast } from 'sonner';
 import { Sparkles, Zap, Activity, Hourglass } from 'lucide-react';

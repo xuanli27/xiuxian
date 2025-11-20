@@ -4,7 +4,7 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Card } from '@/components/ui';
 import { getAvailableTasks, acceptTask, completeTask, generateNextTask } from '@/features/tasks/actions';
-import type { Task } from '@/types/enums';
+import type { Task } from '@/types/database';
 import { toast } from 'sonner';
 import { Scroll, CheckCircle2, RefreshCw, MapPin, Sword, BookOpen } from 'lucide-react';
 import clsx from 'clsx';
@@ -135,11 +135,11 @@ export const TaskBoard: React.FC<Props> = ({ initialTasks }) => {
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-xs text-content-400 bg-surface-950/50 p-2 rounded border border-surface-800">
                     <span>奖励灵石</span>
-                    <span className="text-primary-400 font-bold">+{task.rewardStones}</span>
+                    <span className="text-primary-400 font-bold">+{task.reward_stones}</span>
                   </div>
                   <div className="flex justify-between text-xs text-content-400 bg-surface-950/50 p-2 rounded border border-surface-800">
                     <span>宗门贡献</span>
-                    <span className="text-secondary-400 font-bold">+{task.rewardContribution}</span>
+                    <span className="text-secondary-400 font-bold">+{task.reward_contribution}</span>
                   </div>
                 </div>
               </div>

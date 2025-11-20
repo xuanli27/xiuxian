@@ -15,7 +15,7 @@ export const getPlayerCave = cache(async (playerId: number): Promise<Cave | null
   
   const { data: player } = await supabase
     .from('players')
-    .select('id, cave_level, materials, last_login_time, created_at')
+    .select('id, cave_level, materials, last_login_at, created_at')
     .eq('id', playerId)
     .single()
 
@@ -43,7 +43,7 @@ export const getPlayerCave = cache(async (playerId: number): Promise<Cave | null
     },
     lastCollectAt: caveData.lastCollectAt ? new Date(caveData.lastCollectAt) : new Date(player.created_at),
     createdAt: new Date(player.created_at),
-    updatedAt: new Date(player.last_login_time),
+    updatedAt: new Date(player.last_login_at),
   }
 })
 
