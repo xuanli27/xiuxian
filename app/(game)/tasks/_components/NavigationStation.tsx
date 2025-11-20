@@ -6,14 +6,23 @@ import { StockMarketGame } from './minigames/StockMarketGame';
 import { LogicPuzzleGame } from './minigames/LogicPuzzleGame';
 import clsx from 'clsx';
 
-export const NavigationStation = ({ duration, onComplete }: { duration: number, onComplete: (s: boolean) => void }) => {
+export const NavigationStation = ({ duration, onComplete, initialUrl }: { duration: number, onComplete: (s: boolean) => void, initialUrl?: string }) => {
   const [timer, setTimer] = useState(duration);
-  const [currentSite, setCurrentSite] = useState<{name:string, url:string, gameType?: string} | null>(null);
+  const [currentSite, setCurrentSite] = useState<{name:string, url:string, gameType?: string} | null>(
+    initialUrl ? { name: '任务网站', url: initialUrl, gameType: 'TIMER' } : null
+  );
   const [activeTimer, setActiveTimer] = useState(false);
   const [customUrl, setCustomUrl] = useState('');
   const [isEditingUrl, setIsEditingUrl] = useState(false);
   const [aiResult, setAiResult] = useState<{type: 'summary' | 'translate', content: string} | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    // 如果有初始URL，自动开始计时
+    if (initialUrl && !activeTimer) {
+      setActiveTimer(true);
+    }
+  }, [initialUrl, activeTimer]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;

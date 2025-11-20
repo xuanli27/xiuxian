@@ -4,17 +4,7 @@ import { getAvailableTasks as getAvailableTasksQuery } from './queries'
 import { createServerSupabaseClient } from '@/lib/db/supabase'
 import { getCurrentUserId } from '@/lib/auth/supabase-auth'
 import { revalidatePath } from 'next/cache'
-import { generateStructuredData } from '@/lib/ai/client'
-import { z } from 'zod'
-
-const taskSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-  difficulty: z.enum(['EASY', 'MEDIUM', 'HARD', 'EXTREME']),
-  type: z.enum(['COMBAT', 'GATHER', 'CRAFT', 'NEGOTIATE']),
-  rewardSpiritStones: z.number(),
-  rewardSectContribution: z.number(),
-})
+import { getRandomMoyuTasks } from '@/data/tasks/moyu-tasks'
 
 export async function getAvailableTasks() {
   const userId = await getCurrentUserId()
@@ -37,32 +27,30 @@ export async function generateNextTask() {
   
   const { data: player, error } = await supabase
     .from('players')
-    .select('*')
+    .select('id')
     .eq('user_id', userId)
     .single()
 
   if (error || !player) throw new Error("玩家不存在")
 
-  const prompt = `Generate a Xianxia (cultivation) themed task for a player at level ${player.level}.
-  The task should be related to their current cultivation stage.
-  Make it sound like a quest from a sect elder or a mysterious encounter.
-  Difficulty should be appropriate for their level.`
-
-  const taskData = await generateStructuredData(taskSchema, prompt)
+  // 从预设任务中随机选择
+  const [randomTask] = getRandomMoyuTasks(1)
 
   const { data: newTask, error: insertError } = await supabase
     .from('tasks')
     .insert({
       player_id: player.id,
-      title: taskData.title,
-      description: taskData.description,
-      difficulty: taskData.difficulty,
-      type: taskData.type,
+      title: randomTask.title,
+      description: randomTask.description,
+      difficulty: randomTask.difficulty,
+      type: randomTask.type,
+      category: randomTask.category,
       status: 'PENDING',
-      duration: 3600,
-      reward_qi: 100,
-      reward_stones: taskData.rewardSpiritStones,
-      reward_contribution: taskData.rewardSectContribution
+      duration: randomTask.duration * 60,
+      reward_qi: randomTask.rewardQi,
+      reward_stones: randomTask.rewardStones,
+      reward_contribution: randomTask.rewardContribution,
+      url: randomTask.url || null,
     })
     .select()
     .single()

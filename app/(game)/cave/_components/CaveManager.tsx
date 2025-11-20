@@ -1,8 +1,8 @@
 'use client'
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowUpCircle, Hammer, Home, Sparkles, Box } from 'lucide-react';
+import { ArrowUpCircle, Hammer, Home, Sparkles, Box, Leaf, Mountain, Droplets, Wind, TrendingUp, Package } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 import clsx from 'clsx';
 import { getPlayerCave, getCaveStats, upgradeCave } from '@/features/cave/actions';
@@ -18,6 +18,7 @@ interface Props {
 
 export const CaveManager: React.FC<Props> = ({ initialCave, player }) => {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'overview' | 'upgrade' | 'resources'>('overview');
 
   const { data: cave } = useQuery({
     queryKey: ['cave', player.id],
@@ -48,38 +49,198 @@ export const CaveManager: React.FC<Props> = ({ initialCave, player }) => {
   const upgradeCost = calculateCaveUpgradeCost(cave.level);
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="relative h-64 bg-surface-900 rounded-3xl border border-surface-700 mb-8 overflow-hidden group shadow-2xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-surface-900 via-surface-950 to-black z-0" />
-        <div className="absolute top-0 right-0 w-80 h-80 bg-primary-500/10 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2 animate-pulse" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary-500/10 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
+    <div className="container mx-auto px-4 py-8 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* 洞府头部横幅 */}
+      <div className="relative h-80 bg-gradient-to-br from-emerald-950 via-surface-900 to-blue-950 rounded-3xl border border-surface-700 mb-8 overflow-hidden group shadow-2xl">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30" />
+        
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl translate-x-1/3 -translate-y-1/3 animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
 
-        <div className="absolute inset-0 flex items-center justify-center opacity-5 text-[12rem] select-none grayscale group-hover:grayscale-0 transition-all duration-1000 transform group-hover:scale-110">
-          🏠
+        {/* 装饰性山峰 */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 opacity-20">
+          <Mountain className="absolute bottom-0 left-1/4 text-emerald-400" size={120} />
+          <Mountain className="absolute bottom-0 right-1/3 text-blue-400" size={100} />
+        </div>
+
+        <div className="absolute inset-0 flex items-center justify-center opacity-10 text-[16rem] select-none">
+          🏔️
         </div>
 
         <div className="absolute bottom-8 left-8 z-10">
-          <h2 className="text-4xl font-bold font-xianxia text-transparent bg-clip-text bg-gradient-to-r from-primary-200 via-primary-100 to-primary-300 mb-2 drop-shadow-lg">
-            {cave.name}
-          </h2>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-3 bg-primary-900/40 backdrop-blur-sm rounded-2xl border border-primary-500/30">
+              <Home size={32} className="text-primary-300" />
+            </div>
+            <div>
+              <h2 className="text-4xl font-bold font-xianxia text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 via-primary-100 to-blue-200 drop-shadow-lg">
+                {cave.name}
+              </h2>
+              <p className="text-content-400 text-sm font-serif italic mt-1">"斯是陋室，惟吾德馨"</p>
+            </div>
+          </div>
           <div className="flex items-center gap-3">
-            <span className="px-3 py-1 bg-primary-900/40 border border-primary-500/30 rounded-full text-primary-300 text-xs font-bold backdrop-blur-sm">
-              Lv.{cave.level}
+            <span className="px-4 py-2 bg-primary-900/40 border border-primary-500/30 rounded-full text-primary-300 text-sm font-bold backdrop-blur-sm shadow-lg">
+              等级 {cave.level}
             </span>
-            <p className="text-content-400 text-sm font-serif italic opacity-80">“斯是陋室，惟吾德馨”</p>
+            <span className="px-4 py-2 bg-emerald-900/40 border border-emerald-500/30 rounded-full text-emerald-300 text-sm font-bold backdrop-blur-sm shadow-lg flex items-center gap-2">
+              <Sparkles size={14} />
+              灵气 {cave.spiritDensity}
+            </span>
           </div>
         </div>
 
-        <div className="absolute top-6 right-6 z-10 bg-surface-950/60 backdrop-blur-md px-5 py-3 rounded-2xl border border-surface-700/50 text-sm font-mono text-primary-300 shadow-lg flex flex-col items-end group-hover:border-primary-500/30 transition-colors">
-          <span className="text-[10px] text-content-400 uppercase tracking-wider mb-1">灵气浓度</span>
-          <span className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles size={16} className="text-primary-400" />
-            {cave.spiritDensity}
-          </span>
+        <div className="absolute top-6 right-6 z-10 flex gap-3">
+          <StatCard icon={<TrendingUp size={16} />} label="产出" value={`${stats.productionRate}/时`} color="text-emerald-400" />
+          <StatCard icon={<Package size={16} />} label="容量" value={stats.storageCapacity} color="text-blue-400" />
         </div>
       </div>
 
-      <Card className="bg-surface-900/80 backdrop-blur-sm border-surface-700/50">
+      {/* 标签页导航 */}
+      <div className="flex gap-2 mb-6">
+        <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<Home size={18} />}>
+          总览
+        </TabButton>
+        <TabButton active={activeTab === 'resources'} onClick={() => setActiveTab('resources')} icon={<Box size={18} />}>
+          资源仓库
+        </TabButton>
+        <TabButton active={activeTab === 'upgrade'} onClick={() => setActiveTab('upgrade')} icon={<ArrowUpCircle size={18} />}>
+          洞府升级
+        </TabButton>
+      </div>
+
+      {/* 总览标签 */}
+      {activeTab === 'overview' && (
+        <>
+          {/* 统计信息卡片 */}
+          <div className="grid md:grid-cols-4 gap-4 mb-6">
+            <Card className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border-blue-500/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-content-400 mb-1">建筑数量</p>
+                  <p className="text-2xl font-bold text-blue-400">{stats.totalBuildings}</p>
+                </div>
+                <Home className="text-blue-400 opacity-50" size={32} />
+              </div>
+            </Card>
+            <Card className="bg-gradient-to-br from-green-900/20 to-emerald-900/20 border-green-500/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-content-400 mb-1">运行中</p>
+                  <p className="text-2xl font-bold text-green-400">{stats.activeBuildings}</p>
+                </div>
+                <TrendingUp className="text-green-400 opacity-50" size={32} />
+              </div>
+            </Card>
+            <Card className="bg-gradient-to-br from-purple-900/20 to-violet-900/20 border-purple-500/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-content-400 mb-1">防御力</p>
+                  <p className="text-2xl font-bold text-purple-400">{stats.defensePower}</p>
+                </div>
+                <Wind className="text-purple-400 opacity-50" size={32} />
+              </div>
+            </Card>
+            <Card className="bg-gradient-to-br from-amber-900/20 to-yellow-900/20 border-amber-500/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-content-400 mb-1">产出速率</p>
+                  <p className="text-2xl font-bold text-amber-400">{stats.productionRate}/时</p>
+                </div>
+                <Sparkles className="text-amber-400 opacity-50" size={32} />
+              </div>
+            </Card>
+          </div>
+
+          {/* 资源卡片 */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <ResourceCard
+              icon={<Leaf className="text-green-400" size={24} />}
+              title="灵草"
+              amount={cave.resources.herbs}
+              color="from-green-900/20 to-emerald-900/20"
+              borderColor="border-green-500/20"
+            />
+            <ResourceCard
+              icon={<Mountain className="text-gray-400" size={24} />}
+              title="矿石"
+              amount={cave.resources.ores}
+              color="from-gray-900/20 to-slate-900/20"
+              borderColor="border-gray-500/20"
+            />
+            <ResourceCard
+              icon={<Sparkles className="text-amber-400" size={24} />}
+              title="灵气"
+              amount={cave.resources.spiritualEnergy}
+              color="from-amber-900/20 to-yellow-900/20"
+              borderColor="border-amber-500/20"
+            />
+            <ResourceCard
+              icon={<Droplets className="text-blue-400" size={24} />}
+              title="丹药"
+              amount={cave.resources.pills}
+              color="from-blue-900/20 to-cyan-900/20"
+              borderColor="border-blue-500/20"
+            />
+            <ResourceCard
+              icon={<Wind className="text-purple-400" size={24} />}
+              title="法器"
+              amount={cave.resources.artifacts}
+              color="from-purple-900/20 to-violet-900/20"
+              borderColor="border-purple-500/20"
+            />
+            <Card className="bg-gradient-to-br from-primary-900/20 to-secondary-900/20 border-primary-500/20">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-primary-500/10 rounded-xl">
+                  <TrendingUp className="text-primary-400" size={24} />
+                </div>
+                <h3 className="font-bold text-content-100">每日收益</h3>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between text-content-300">
+                  <span>灵气</span>
+                  <span className="text-primary-400 font-bold">+{Math.floor(stats.dailyIncome.spiritualEnergy)}</span>
+                </div>
+                <div className="flex justify-between text-content-300">
+                  <span>灵草</span>
+                  <span className="text-green-400 font-bold">+{stats.dailyIncome.herbs}</span>
+                </div>
+                <div className="flex justify-between text-content-300">
+                  <span>矿石</span>
+                  <span className="text-gray-400 font-bold">+{stats.dailyIncome.ores}</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {/* 资源仓库标签 */}
+      {activeTab === 'resources' && (
+        <Card className="bg-surface-900/80 backdrop-blur-sm border-surface-700/50">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 border border-blue-500/20">
+              <Box size={24} />
+            </div>
+            <h3 className="font-bold text-xl text-content-100">资源仓库</h3>
+            <span className="ml-auto text-sm text-content-400">
+              容量: <span className="text-primary-400 font-bold">{stats.storageCapacity}</span>
+            </span>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <StorageItem name="灵草" amount={cave.resources.herbs} icon="🌿" />
+            <StorageItem name="矿石" amount={cave.resources.ores} icon="⛰️" />
+            <StorageItem name="灵气" amount={cave.resources.spiritualEnergy} icon="✨" />
+            <StorageItem name="丹药" amount={cave.resources.pills} icon="💊" />
+            <StorageItem name="法器" amount={cave.resources.artifacts} icon="🗡️" />
+          </div>
+        </Card>
+      )}
+
+      {/* 升级标签 */}
+      {activeTab === 'upgrade' && (
+        <Card className="bg-surface-900/80 backdrop-blur-sm border-surface-700/50">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-secondary-500/10 rounded-xl text-secondary-400 border border-secondary-500/20">
             <ArrowUpCircle size={24} />
@@ -148,10 +309,60 @@ export const CaveManager: React.FC<Props> = ({ initialCave, player }) => {
             <p className="text-sm opacity-60 font-serif">“可谓是五星级工位，摸鱼圣地”</p>
           </div>
         )}
-      </Card>
+        </Card>
+      )}
     </div>
   );
 };
+
+const TabButton = ({ active, onClick, icon, children }: { active: boolean, onClick: () => void, icon: React.ReactNode, children: React.ReactNode }) => (
+  <button
+    onClick={onClick}
+    className={clsx(
+      "px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2",
+      active
+        ? "bg-primary-600 text-white shadow-lg shadow-primary-500/20"
+        : "bg-surface-800 text-content-400 hover:bg-surface-700 border border-surface-700"
+    )}
+  >
+    {icon}
+    {children}
+  </button>
+);
+
+const StatCard = ({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: string | number, color: string }) => (
+  <div className="bg-surface-950/60 backdrop-blur-md px-4 py-3 rounded-2xl border border-surface-700/50 shadow-lg">
+    <div className="flex items-center gap-2 mb-1">
+      <span className={color}>{icon}</span>
+      <span className="text-[10px] text-content-400 uppercase tracking-wider font-bold">{label}</span>
+    </div>
+    <div className={clsx("text-xl font-bold font-mono", color)}>{value}</div>
+  </div>
+);
+
+const ResourceCard = ({ icon, title, amount, color, borderColor }: { icon: React.ReactNode, title: string, amount: number, color: string, borderColor: string }) => (
+  <Card className={clsx("bg-gradient-to-br border", color, borderColor)}>
+    <div className="flex items-center justify-between mb-4">
+      <div className="p-3 bg-surface-900/50 rounded-xl border border-surface-700/50">
+        {icon}
+      </div>
+      <div className="text-right">
+        <div className="text-3xl font-bold text-content-100 font-mono">{amount}</div>
+        <div className="text-xs text-content-400 uppercase tracking-wider">{title}</div>
+      </div>
+    </div>
+  </Card>
+);
+
+const StorageItem = ({ name, amount, icon }: { name: string, amount: number, icon: string }) => (
+  <div className="flex items-center justify-between p-4 rounded-xl bg-surface-950/50 border border-surface-800 hover:border-surface-600 transition-colors group">
+    <div className="flex items-center gap-3">
+      <span className="text-3xl filter grayscale group-hover:grayscale-0 transition-all">{icon}</span>
+      <span className="font-medium text-content-200">{name}</span>
+    </div>
+    <div className="text-2xl font-bold font-mono text-primary-400">{amount}</div>
+  </div>
+);
 
 const CostItem = ({ name, current, cost, icon }: { name: string, current: number, cost: number, icon: string }) => {
   const canAfford = current >= cost;

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server'
 import { getPlayerByUserId } from '@/features/player/queries'
 import { getPlayerCave } from '@/features/cave/queries'
+import { initializeCave } from '@/features/cave/seed'
 import { CaveManager } from './_components/CaveManager'
 
 /**
@@ -15,13 +16,18 @@ export default async function CavePage() {
     redirect('/register')
   }
 
-  const cave = await getPlayerCave(player.id)
+  let cave = await getPlayerCave(player.id)
+
+  if (!cave) {
+    await initializeCave(player.id)
+    cave = await getPlayerCave(player.id)
+  }
 
   if (!cave) {
     return (
       <div className="text-center">
-        <h1 className="text-3xl font-bold">你还没有洞府</h1>
-        <p className="mt-4 text-content-400">快去开辟一个属于你的洞天福地吧!</p>
+        <h1 className="text-3xl font-bold">洞府初始化失败</h1>
+        <p className="mt-4 text-content-400">请刷新页面重试</p>
       </div>
     )
   }

@@ -1,12 +1,13 @@
 'use client'
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, Card } from '@/components/ui';
+import { Button, Card, Modal } from '@/components/ui';
 import { getAvailableTasks, acceptTask, completeTask, generateNextTask } from '@/features/tasks/actions';
+import { NavigationStation } from './NavigationStation';
 import type { Task } from '@/types/database';
 import { toast } from 'sonner';
-import { Scroll, CheckCircle2, RefreshCw, MapPin, Sword, BookOpen } from 'lucide-react';
+import { Scroll, CheckCircle2, RefreshCw, MapPin, Sword, BookOpen, ExternalLink } from 'lucide-react';
 import clsx from 'clsx';
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
 
 export const TaskBoard: React.FC<Props> = ({ initialTasks }) => {
   const queryClient = useQueryClient();
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const { data: tasks } = useQuery({
     queryKey: ['tasks'],
@@ -154,16 +156,13 @@ export const TaskBoard: React.FC<Props> = ({ initialTasks }) => {
                     一键接取
                   </Button>
                 ) : task.status === 'IN_PROGRESS' ? (
-                  <div className="w-full relative h-10 bg-surface-950 rounded-lg overflow-hidden border border-surface-800">
-                    <div className="absolute inset-0 flex items-center justify-center z-10 text-xs font-bold text-primary-300">
-                      任务进行中...
-                    </div>
-                    <div className="absolute inset-y-0 left-0 bg-primary-900/30 w-1/2 animate-pulse" />
-                    <Button
-                      className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
-                      onClick={() => complete.mutate(task.id)}
-                    />
-                  </div>
+                  <Button
+                    className="w-full bg-blue-600 hover:bg-blue-500"
+                    onClick={() => task.url ? setActiveTask(task) : complete.mutate(task.id)}
+                    icon={task.url ? <ExternalLink size={16} /> : undefined}
+                  >
+                    {task.url ? '开始任务' : '完成任务'}
+                  </Button>
                 ) : (
                   <Button className="w-full" variant="ghost" disabled>
                     <CheckCircle2 size={16} className="mr-2" /> 已完成
@@ -181,6 +180,29 @@ export const TaskBoard: React.FC<Props> = ({ initialTasks }) => {
           </div>
         )}
       </div>
+
+      {/* 任务执行弹窗 */}
+      <Modal
+        isOpen={!!activeTask}
+        onClose={() => setActiveTask(null)}
+        title={activeTask?.title || ''}
+        maxWidth="max-w-7xl"
+      >
+        {activeTask?.url && (
+          <div className="h-[85vh] w-full">
+            <NavigationStation
+              duration={activeTask.duration || 60}
+              initialUrl={activeTask.url}
+              onComplete={(success) => {
+                if (success && activeTask) {
+                  complete.mutate(activeTask.id);
+                  setActiveTask(null);
+                }
+              }}
+            />
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
