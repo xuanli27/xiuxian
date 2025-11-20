@@ -1,8 +1,9 @@
-import { Rank } from '@prisma/client'
-
 /**
  * 渡劫系统类型定义
  */
+
+// 境界枚举
+export type Rank = 'MORTAL' | 'QI_REFINING' | 'FOUNDATION' | 'GOLDEN_CORE' | 'NASCENT_SOUL' | 'SPIRIT_SEVERING' | 'VOID_REFINING' | 'MAHAYANA' | 'IMMORTAL'
 
 // 天劫类型
 export enum TribulationType {

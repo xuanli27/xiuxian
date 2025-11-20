@@ -7,7 +7,7 @@ import { Button, PageHeader } from '@/components/ui';
 import clsx from 'clsx';
 import { EquipmentPanel } from './EquipmentPanel';
 import { getPlayerInventory, useItem as itemAction, equipItem } from '@/features/inventory/actions';
-import type { Player } from '@prisma/client';
+import type { Player } from '@/types/enums';
 import type { InventoryItem, Item } from '@/features/inventory/types';
 
 interface Props {

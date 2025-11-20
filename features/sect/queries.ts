@@ -1,30 +1,52 @@
-import { prisma } from '@/lib/db/prisma';
+import { createServerSupabaseClient } from '@/lib/db/supabase';
 import { cache } from 'react';
-import { getCurrentUserId } from '@/lib/auth/guards';
+import { getCurrentUserId } from '@/lib/auth/server';
 import { SECT_CONFIG } from '@/config/game';
 
 export const getSectInfo = cache(async () => {
-  // Placeholder for single sect logic, or get the player's sect
   const userId = await getCurrentUserId();
-  const player = await prisma.player.findUnique({
-    where: { userId },
-    include: { sectMembership: { include: { sect: true } } }
-  });
+  const supabase = await createServerSupabaseClient();
+  
+  // 获取玩家信息
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single();
 
-  if (player?.sectMembership?.sect) {
-    const sect = player.sectMembership.sect;
-    const memberCount = await prisma.sectMember.count({
-      where: { sectId: sect.id }
-    });
-    
-    return {
-      name: sect.name,
-      description: sect.description,
-      totalMembers: memberCount,
-      averageLevel: 1,
-      totalContribution: sect.reputation,
-      ranking: 1
-    };
+  if (player) {
+    // 获取玩家的宗门成员关系
+    const { data: membership } = await supabase
+      .from('sect_members')
+      .select('sect_id')
+      .eq('player_id', player.id)
+      .single();
+
+    if (membership) {
+      // 获取宗门信息
+      const { data: sect } = await supabase
+        .from('sects')
+        .select('name, description, reputation')
+        .eq('id', membership.sect_id)
+        .single();
+
+      // 统计成员数量
+      const { count } = await supabase
+        .from('sect_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('sect_id', membership.sect_id);
+
+      if (sect) {
+        return {
+          name: sect.name,
+          description: sect.description,
+          totalMembers: count || 0,
+          averageLevel: 1,
+          totalContribution: sect.reputation,
+          ranking: 1
+        };
+      }
+    }
   }
   
   return {
@@ -38,9 +60,13 @@ export const getSectInfo = cache(async () => {
 });
 
 export const getPlayerSectStats = cache(async (playerId: number) => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId }
-  });
+  const supabase = await createServerSupabaseClient();
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('contribution, sect_rank')
+    .eq('id', playerId)
+    .single();
 
   if (!player) {
     return {
@@ -52,7 +78,7 @@ export const getPlayerSectStats = cache(async (playerId: number) => {
 
   return {
     totalContribution: player.contribution,
-    rank: player.sectRank,
+    rank: player.sect_rank as any,
     joinedAt: new Date()
   };
 });

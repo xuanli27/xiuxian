@@ -1,107 +1,210 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Mail, Lock, Eye, EyeOff, Github, Chrome, Sparkles } from 'lucide-react'
+import { emailPasswordLogin, signInWithOAuth } from '../actions'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const router = useRouter()
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!email) return
-    
+    setError('')
     setIsLoading(true)
-    await signIn('credentials', {
-      email,
-      callbackUrl: '/dashboard'
-    })
-    setIsLoading(false)
+
+    const formData = new FormData(e.currentTarget)
+    
+    try {
+      const result = await emailPasswordLogin(formData)
+      if (result?.error) {
+        setError(result.error)
+      }
+    } catch {
+      setError('登录失败,请重试')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
-    await signIn(provider, { callbackUrl: '/dashboard' })
+  const handleOAuthLogin = async (provider: 'google' | 'github') => {
+    setIsLoading(true)
+    try {
+      await signInWithOAuth(provider)
+    } catch {
+      setError(`${provider} 登录失败`)
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-950 text-content-100 p-4">
-      <div className="w-full max-w-md mx-auto bg-surface-900 rounded-2xl shadow-lg border border-border-base overflow-hidden">
-        <div className="p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-xianxia text-primary-500 mb-4">
-              重返仙途
-            </h1>
-            <p className="text-content-200 text-lg">
-              道友，你的神识已归位，仙途待续。
-            </p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-surface-950 p-6 text-content-100 relative overflow-hidden">
+      {/* 仙气背景 */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary-500/10 via-surface-950 to-surface-950" />
+      
+      {/* 灵气粒子 */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 bg-primary-400/30 rounded-full animate-float"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${5 + Math.random() * 10}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="max-w-md w-full z-10 space-y-8">
+        {/* 标题 */}
+        <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-8 duration-1000">
+          <div className="inline-block p-3 bg-surface-900 rounded-full border border-primary-500/30 mb-2 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+            <Sparkles size={32} className="text-primary-400 animate-pulse" />
           </div>
-          
-          {/* 邮箱登录 */}
-          <form onSubmit={handleEmailSignIn} className="mb-6">
-            <div className="space-y-4">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="输入邮箱快速登录"
-                className="w-full px-4 py-3 bg-surface-800 border border-border-base rounded-lg text-content-100 placeholder-content-400 focus:outline-none focus:border-primary-500 transition-colors"
-                required
-              />
+          <h1 className="font-xianxia text-5xl text-transparent bg-clip-text bg-gradient-to-b from-primary-300 to-primary-600 leading-relaxed drop-shadow-lg">
+            神魂归位
+          </h1>
+          <p className="text-content-300 font-serif text-lg">唤醒沉睡的神魂,重返修仙之路</p>
+        </div>
+
+        {/* 登录表单 */}
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+          <div className="bg-surface-900/80 backdrop-blur-md p-8 rounded-2xl border border-primary-500/20 shadow-2xl space-y-6">
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              {/* 邮箱 */}
+              <div className="space-y-2">
+                <label className="text-sm font-serif text-content-300 flex items-center gap-2">
+                  <Mail size={16} className="text-primary-400" />
+                  宗门令牌
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="输入你的宗门令牌标识"
+                  required
+                  className="w-full px-4 py-3 bg-surface-800 border border-surface-700 rounded-xl text-content-100 placeholder-content-500 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
+                />
+              </div>
+
+              {/* 密码 */}
+              <div className="space-y-2">
+                <label className="text-sm font-serif text-content-300 flex items-center gap-2">
+                  <Lock size={16} className="text-primary-400" />
+                  神魂印记
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    placeholder="唤醒你的神魂气息"
+                    required
+                    className="w-full px-4 py-3 bg-surface-800 border border-surface-700 rounded-xl text-content-100 placeholder-content-500 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-content-400 hover:text-content-200 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* 错误提示 */}
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                  {error}
+                </div>
+              )}
+
+              {/* 登录按钮 */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 px-6 bg-primary-500 text-white font-bold rounded-lg shadow-md hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105"
+                className="w-full group relative px-6 py-4 bg-transparent overflow-hidden rounded-xl transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="font-cute text-xl">
-                  {isLoading ? '登录中...' : '邮箱登录'}
+                <div className="absolute inset-0 bg-gradient-to-r from-secondary-600 to-primary-600 transition-all group-hover:brightness-110" />
+                <span className="relative flex items-center justify-center gap-2 font-xianxia text-xl font-bold text-white tracking-widest">
+                  {isLoading ? '神魂归位中...' : '唤醒神魂'}
                 </span>
               </button>
-            </div>
-          </form>
+            </form>
 
-          {/* 分隔线 */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border-base"></div>
+            {/* 分隔线 */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-surface-700"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-4 bg-surface-900 text-content-400 font-serif">或借助外力唤醒</span>
+              </div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-surface-900 text-content-400">或使用第三方登录</span>
+
+            {/* 社交登录 */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleOAuthLogin('google')}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-surface-800 hover:bg-surface-700 border border-surface-700 hover:border-primary-500/50 rounded-xl transition-all disabled:opacity-50"
+              >
+                <Chrome size={20} className="text-content-300" />
+                <span className="text-sm font-serif">Google</span>
+              </button>
+              <button
+                onClick={() => handleOAuthLogin('github')}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-surface-800 hover:bg-surface-700 border border-surface-700 hover:border-primary-500/50 rounded-xl transition-all disabled:opacity-50"
+              >
+                <Github size={20} className="text-content-300" />
+                <span className="text-sm font-serif">GitHub</span>
+              </button>
             </div>
           </div>
-          
-          {/* OAuth 登录 */}
-          <div className="space-y-3">
+
+          {/* 注册链接 */}
+          <div className="text-center">
             <button
-              onClick={() => handleOAuthSignIn('google')}
-              className="w-full py-2.5 px-4 bg-white text-gray-800 font-medium rounded-lg shadow hover:bg-gray-100 transition-all duration-300 flex items-center justify-center gap-2 text-sm"
+              onClick={() => router.push('/register')}
+              className="text-primary-400 hover:text-primary-300 font-serif text-sm transition-colors hover:underline"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              Google
-            </button>
-            
-            <button
-              onClick={() => handleOAuthSignIn('github')}
-              className="w-full py-2.5 px-4 bg-gray-800 text-white font-medium rounded-lg shadow hover:bg-gray-700 transition-all duration-300 flex items-center justify-center gap-2 text-sm"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-              </svg>
-              GitHub
+              初入仙途?立即凝聚神魂 →
             </button>
           </div>
         </div>
-        
-        <div className="px-8 py-4 bg-surface-800 border-t border-border-base text-center">
-          <p className="text-xs text-content-400">
-            首次登录将自动<span className="text-primary-400">创建道体</span>
-          </p>
-        </div>
+
+        {/* 底部提示 */}
+        <p className="text-center text-xs text-content-400 opacity-50 tracking-widest">
+          即使是咸鱼 · 也要做最咸的那一条
+        </p>
       </div>
+
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0) translateX(0);
+            opacity: 0;
+          }
+          10% {
+            opacity: 0.3;
+          }
+          50% {
+            transform: translateY(-100vh) translateX(20px);
+            opacity: 0.5;
+          }
+          90% {
+            opacity: 0.3;
+          }
+        }
+        .animate-float {
+          animation: float linear infinite;
+        }
+      `}</style>
     </div>
-  );
+  )
 }

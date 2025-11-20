@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { prisma } from '@/lib/db/prisma'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
 import type { Cave, Building, CaveStats, CaveResources } from './types'
 import { BuildingStatus } from './types'
 
@@ -11,16 +11,13 @@ import { BuildingStatus } from './types'
  * 获取玩家洞府信息
  */
 export const getPlayerCave = cache(async (playerId: number): Promise<Cave | null> => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: {
-      id: true,
-      caveLevel: true,
-      materials: true,
-      lastLoginTime: true,
-      createTime: true,
-    }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id, cave_level, materials, last_login_time, created_at')
+    .eq('id', playerId)
+    .single()
 
   if (!player) return null
 
@@ -33,7 +30,7 @@ export const getPlayerCave = cache(async (playerId: number): Promise<Cave | null
 
   return {
     playerId: player.id,
-    level: player.caveLevel,
+    level: player.cave_level,
     name: caveData.name || '无名洞府',
     spiritDensity: caveData.spiritDensity || 100,
     buildings: caveData.buildings || [],
@@ -44,9 +41,9 @@ export const getPlayerCave = cache(async (playerId: number): Promise<Cave | null
       pills: 0,
       artifacts: 0,
     },
-    lastCollectAt: caveData.lastCollectAt ? new Date(caveData.lastCollectAt) : player.createTime,
-    createdAt: player.createTime,
-    updatedAt: player.lastLoginTime,
+    lastCollectAt: caveData.lastCollectAt ? new Date(caveData.lastCollectAt) : new Date(player.created_at),
+    createdAt: new Date(player.created_at),
+    updatedAt: new Date(player.last_login_time),
   }
 })
 

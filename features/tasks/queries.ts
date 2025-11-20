@@ -1,42 +1,52 @@
-import { prisma } from '@/lib/db/prisma';
-import { cache } from 'react';
-import { getCurrentUserId } from '@/lib/auth/guards';
-import { TaskStatus } from '@prisma/client';
+import { createServerSupabaseClient } from '@/lib/db/supabase'
+import { cache } from 'react'
+import { getCurrentUserId } from '@/lib/auth/supabase-auth'
+import type { Task } from '@/types/database'
 
-export const getAvailableTasks = cache(async () => {
-  const userId = await getCurrentUserId();
-  const player = await prisma.player.findUnique({
-    where: { userId },
-    select: { id: true }
-  });
+export const getAvailableTasks = cache(async (): Promise<Task[]> => {
+  const userId = await getCurrentUserId()
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
 
-  if (!player) return [];
+  if (!player) return []
 
-  return prisma.task.findMany({
-    where: {
-      playerId: player.id,
-      status: {
-        in: [TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED]
-      }
-    },
-    orderBy: {
-      createdAt: 'desc'
-    }
-  });
-});
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('player_id', player.id)
+    .in('status', ['PENDING', 'IN_PROGRESS', 'COMPLETED'])
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('获取任务失败:', error)
+    return []
+  }
+
+  return data || []
+})
 
 export const getTaskHistory = cache(async () => {
-  // Placeholder for history
-  return [];
-});
+  return []
+})
 
-export const getPlayerTasks = cache(async (playerId: number) => {
-  return prisma.task.findMany({
-    where: {
-      playerId: playerId,
-    },
-    orderBy: {
-      createdAt: 'desc'
-    }
-  });
-});
+export const getPlayerTasks = cache(async (playerId: number): Promise<Task[]> => {
+  const supabase = await createServerSupabaseClient()
+  
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('player_id', playerId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('获取任务失败:', error)
+    return []
+  }
+
+  return data || []
+})

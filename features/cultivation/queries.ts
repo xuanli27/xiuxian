@@ -1,29 +1,9 @@
-import { getCurrentUserId } from '@/lib/auth/guards'
-
-/**
- * 获取当前玩家的境界信息(客户端调用)
- */
-export async function getCurrentPlayerRealmInfo(): Promise<RealmInfo | null> {
-  const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId },
-    select: {
-      id: true,
-      rank: true,
-      qi: true,
-      maxQi: true,
-    }
-  })
-
-  if (!player) return null
-
-  return getPlayerRealmInfo(player.id)
-}
-
 import { cache } from 'react'
-import { prisma } from '@/lib/db/prisma'
-import type { Rank } from '@prisma/client'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
+import { getCurrentUserId } from '@/lib/auth/server'
 import type { RealmInfo, CultivationStats } from './types'
+
+type Rank = 'MORTAL' | 'QI_REFINING' | 'FOUNDATION' | 'GOLDEN_CORE' | 'NASCENT_SOUL' | 'SPIRIT_SEVERING' | 'VOID_REFINING' | 'MAHAYANA' | 'IMMORTAL'
 
 /**
  * 修炼系统数据查询函数
@@ -33,14 +13,13 @@ import type { RealmInfo, CultivationStats } from './types'
  * 获取玩家当前境界信息
  */
 export const getPlayerRealmInfo = cache(async (playerId: number): Promise<RealmInfo | null> => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: {
-      rank: true,
-      qi: true,
-      maxQi: true,
-    }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('rank, qi, max_qi')
+    .eq('id', playerId)
+    .single()
 
   if (!player) return null
 
@@ -84,18 +63,36 @@ export const getPlayerRealmInfo = cache(async (playerId: number): Promise<RealmI
   }
 
   const expCurrent = player.qi
-  const expRequired = player.maxQi
+  const expRequired = player.max_qi
   const breakthroughChance = Math.min((expCurrent / expRequired) * 0.9, 0.9)
 
   return {
-    rank: player.rank,
-    name: realmNames[player.rank],
+    rank: player.rank as Rank,
+    name: realmNames[player.rank as Rank],
     expRequired,
     expCurrent,
     breakthroughChance,
-    benefits: benefits[player.rank],
+    benefits: benefits[player.rank as Rank],
   }
 })
+
+/**
+ * 获取当前玩家的境界信息(客户端调用)
+ */
+export async function getCurrentPlayerRealmInfo(): Promise<RealmInfo | null> {
+  const userId = await getCurrentUserId()
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
+
+  if (!player) return null
+
+  return getPlayerRealmInfo(player.id)
+}
 
 /**
  * 获取修炼记录(从Player的history字段解析)
@@ -104,10 +101,13 @@ export const getCultivationRecords = cache(async (
   playerId: number,
   limit: number = 20
 ) => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: { history: true }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('history')
+    .eq('id', playerId)
+    .single()
 
   if (!player) return []
 
@@ -126,10 +126,13 @@ export const getCultivationRecords = cache(async (
  * 获取修炼统计
  */
 export const getCultivationStats = cache(async (playerId: number): Promise<CultivationStats> => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: { history: true }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('history')
+    .eq('id', playerId)
+    .single()
 
   if (!player) {
     return {

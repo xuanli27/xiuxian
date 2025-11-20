@@ -11,7 +11,7 @@ export const SpiritCoreVisualizer: React.FC<Props> = ({ onClick }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const progress = player ? Math.min(100, (player.qi / player.maxQi) * 100) : 0;
+  const progress = player ? Math.min(100, (player.qi / player.max_qi) * 100) : 0;
 
   useEffect(() => {
     if (!player || !canvasRef.current || !containerRef.current) return;

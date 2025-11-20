@@ -1,4 +1,4 @@
-import type { SectRank } from '@prisma/client'
+import type { SectRank } from '@/types/enums'
 import type { SectPosition } from './types'
 
 /**

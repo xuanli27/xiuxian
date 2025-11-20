@@ -1,7 +1,7 @@
 'use server'
 
-import { prisma } from '@/lib/db/prisma'
-import { getCurrentUserId } from '@/lib/auth/guards'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
+import { getCurrentUserId } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
 import {
   startMeditationSchema,
@@ -26,12 +26,13 @@ import { getPlayerRealmInfo, getCultivationStats } from './queries'
  */
 export async function getCurrentPlayerRealmInfo(): Promise<RealmInfo | null> {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId },
-    select: {
-      id: true,
-    }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
 
   if (!player) return null
 
@@ -43,10 +44,13 @@ export async function getCurrentPlayerRealmInfo(): Promise<RealmInfo | null> {
  */
 export async function getCurrentCultivationStats(): Promise<CultivationStats> {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId },
-    select: { id: true }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
 
   if (!player) {
     return {
@@ -75,42 +79,46 @@ export async function startMeditation(input: {
   const validated = startMeditationSchema.parse(input)
 
   // 获取玩家
-  const player = await prisma.player.findUnique({
-    where: { userId }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id, spirit_root, qi, history')
+    .eq('user_id', userId)
+    .single()
 
   if (!player) {
     throw new Error('玩家不存在')
   }
 
   // 计算经验收益
-  const spiritRootQuality = player.spiritRoot === 'HEAVEN' ? 3 :
-    player.spiritRoot === 'EARTH' ? 2 : 1
+  const spiritRootQuality = player.spirit_root === 'HEAVEN' ? 3 :
+    player.spirit_root === 'EARTH' ? 2 : 1
   const expGained = calculateCultivationExp(
     validated.duration,
     spiritRootQuality,
     validated.boost || 1
   )
 
-  // 更新玩家灵气
-  const updatedPlayer = await prisma.player.update({
-    where: { id: player.id },
-    data: {
-      qi: {
-        increment: expGained
-      },
-      // 添加修炼记录到history
-      history: {
-        push: {
-          type: 'CULTIVATION',
-          timestamp: new Date().toISOString(),
-          duration: validated.duration,
-          expGained,
-          method: 'MEDITATION'
-        }
-      }
-    }
+  // 更新玩家灵气和历史记录
+  const history = Array.isArray(player.history) ? player.history : []
+  history.push({
+    type: 'CULTIVATION',
+    timestamp: new Date().toISOString(),
+    duration: validated.duration,
+    expGained,
+    method: 'MEDITATION'
   })
+
+  const { data: updatedPlayer } = await supabase
+    .from('players')
+    .update({
+      qi: player.qi + expGained,
+      history
+    })
+    .eq('id', player.id)
+    .select()
+    .single()
 
   revalidatePath('/cultivation')
   revalidatePath('/dashboard')
@@ -129,39 +137,47 @@ export async function startMeditation(input: {
  */
 export async function autoCultivate() {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({ where: { userId } })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id, spirit_root, qi, max_qi')
+    .eq('user_id', userId)
+    .single()
 
   if (!player) return null
 
   // 基础自动修炼速度 (每分钟)
   const baseRate = 2
   // 灵根加成
-  const spiritRootMultiplier = player.spiritRoot === 'HEAVEN' ? 2 : player.spiritRoot === 'EARTH' ? 1.5 : 1
+  const spiritRootMultiplier = player.spirit_root === 'HEAVEN' ? 2 : player.spirit_root === 'EARTH' ? 1.5 : 1
 
   const expGained = Math.floor(baseRate * spiritRootMultiplier)
 
   // 检查是否可以自动突破
-  const shouldAutoBreakthrough = player.qi + expGained >= player.maxQi * 0.95
+  const shouldAutoBreakthrough = player.qi + expGained >= player.max_qi * 0.95
 
   if (shouldAutoBreakthrough) {
     // 触发自动突破逻辑 (这里简化处理，实际可能需要更复杂的判定)
     // 暂时只增加灵气，让前端提示突破
   }
 
-  const updatedPlayer = await prisma.player.update({
-    where: { id: player.id },
-    data: {
-      qi: { increment: expGained }
-    }
-  })
+  const { data: updatedPlayer } = await supabase
+    .from('players')
+    .update({
+      qi: player.qi + expGained
+    })
+    .eq('id', player.id)
+    .select('qi, max_qi')
+    .single()
 
   revalidatePath('/dashboard')
 
   return {
     success: true,
     expGained,
-    currentQi: updatedPlayer.qi,
-    maxQi: updatedPlayer.maxQi
+    currentQi: updatedPlayer?.qi || player.qi + expGained,
+    maxQi: updatedPlayer?.max_qi || player.max_qi
   }
 }
 
@@ -178,40 +194,45 @@ export async function startRetreat(input: {
   const validated = startRetreatSchema.parse(input)
 
   // 获取玩家
-  const player = await prisma.player.findUnique({
-    where: { userId }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id, spirit_root, qi, history')
+    .eq('user_id', userId)
+    .single()
 
   if (!player) {
     throw new Error('玩家不存在')
   }
 
   // 闭关经验是普通修炼的1.5倍
-  const spiritRootQuality = player.spiritRoot === 'HEAVEN' ? 3 :
-    player.spiritRoot === 'EARTH' ? 2 : 1
+  const spiritRootQuality = player.spirit_root === 'HEAVEN' ? 3 :
+    player.spirit_root === 'EARTH' ? 2 : 1
   const baseExp = calculateCultivationExp(validated.duration, spiritRootQuality, 1)
   const expGained = Math.floor(baseExp * 1.5)
 
   // TODO: 检查和消耗资源
 
   // 更新玩家
-  const updatedPlayer = await prisma.player.update({
-    where: { id: player.id },
-    data: {
-      qi: {
-        increment: expGained
-      },
-      history: {
-        push: {
-          type: 'CULTIVATION',
-          timestamp: new Date().toISOString(),
-          duration: validated.duration,
-          expGained,
-          method: 'RETREAT'
-        }
-      }
-    }
+  const history = Array.isArray(player.history) ? player.history : []
+  history.push({
+    type: 'CULTIVATION',
+    timestamp: new Date().toISOString(),
+    duration: validated.duration,
+    expGained,
+    method: 'RETREAT'
   })
+
+  const { data: updatedPlayer } = await supabase
+    .from('players')
+    .update({
+      qi: player.qi + expGained,
+      history
+    })
+    .eq('id', player.id)
+    .select()
+    .single()
 
   revalidatePath('/cultivation')
   revalidatePath('/dashboard')
@@ -237,9 +258,14 @@ export async function attemptBreakthrough(input: {
   const validated = breakthroughSchema.parse(input)
 
   // 获取玩家
-  const player = await prisma.player.findUnique({
-    where: { id: validated.playerId, userId }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id, rank, qi, max_qi, spirit_stones, history')
+    .eq('id', validated.playerId)
+    .eq('user_id', userId)
+    .single()
 
   if (!player) {
     throw new Error('玩家不存在')
@@ -258,7 +284,7 @@ export async function attemptBreakthrough(input: {
   }
 
   // 计算突破成功率
-  const expProgress = player.qi / player.maxQi
+  const expProgress = player.qi / player.max_qi
   const hasBreakthroughPill = validated.useItems && validated.useItems.length > 0
   const successChance = calculateBreakthroughChance(expProgress, 50, hasBreakthroughPill)
 
@@ -277,7 +303,7 @@ export async function attemptBreakthrough(input: {
   const cost = calculateBreakthroughCost(player.rank)
 
   // 检查资源是否足够
-  if (player.spiritStones < cost.spiritStones) {
+  if (player.spirit_stones < cost.spiritStones) {
     return {
       success: false,
       realmBefore: player.rank,
@@ -293,29 +319,28 @@ export async function attemptBreakthrough(input: {
 
   if (success) {
     // 突破成功
-    const newMaxQi = Math.floor(player.maxQi * 2)
+    const newMaxQi = Math.floor(player.max_qi * 2)
 
-    const updatedPlayer = await prisma.player.update({
-      where: { id: player.id },
-      data: {
-        rank: nextRank,
-        qi: 0, // 突破后灵气归零
-        maxQi: newMaxQi,
-        spiritStones: {
-          decrement: cost.spiritStones
-        },
-        history: {
-          push: {
-            type: 'BREAKTHROUGH',
-            timestamp: new Date().toISOString(),
-            realmBefore: player.rank,
-            realmAfter: nextRank,
-            success: true,
-            successChance: Math.floor(successChance * 100)
-          }
-        }
-      }
+    const history = Array.isArray(player.history) ? player.history : []
+    history.push({
+      type: 'BREAKTHROUGH',
+      timestamp: new Date().toISOString(),
+      realmBefore: player.rank,
+      realmAfter: nextRank,
+      success: true,
+      successChance: Math.floor(successChance * 100)
     })
+
+    await supabase
+      .from('players')
+      .update({
+        rank: nextRank,
+        qi: 0,
+        max_qi: newMaxQi,
+        spirit_stones: player.spirit_stones - cost.spiritStones,
+        history
+      })
+      .eq('id', player.id)
 
     revalidatePath('/cultivation')
     revalidatePath('/dashboard')
@@ -329,33 +354,28 @@ export async function attemptBreakthrough(input: {
     }
   } else {
     // 突破失败
-    const expLoss = Math.floor(player.qi * 0.3) // 失败损失30%灵气
+    const expLoss = Math.floor(player.qi * 0.3)
 
-    const updatedPlayer = await prisma.player.update({
-      where: { id: player.id },
-      data: {
-        qi: {
-          decrement: expLoss
-        },
-        innerDemon: {
-          increment: 10 // 增加心魔值
-        },
-        spiritStones: {
-          decrement: cost.spiritStones
-        },
-        history: {
-          push: {
-            type: 'BREAKTHROUGH',
-            timestamp: new Date().toISOString(),
-            realmBefore: player.rank,
-            realmAfter: null,
-            success: false,
-            expLost: expLoss,
-            successChance: Math.floor(successChance * 100)
-          }
-        }
-      }
+    const history = Array.isArray(player.history) ? player.history : []
+    history.push({
+      type: 'BREAKTHROUGH',
+      timestamp: new Date().toISOString(),
+      realmBefore: player.rank,
+      realmAfter: null,
+      success: false,
+      expLost: expLoss,
+      successChance: Math.floor(successChance * 100)
     })
+
+    await supabase
+      .from('players')
+      .update({
+        qi: player.qi - expLoss,
+        inner_demon: (player as any).inner_demon + 10,
+        spirit_stones: player.spirit_stones - cost.spiritStones,
+        history
+      })
+      .eq('id', player.id)
 
     revalidatePath('/cultivation')
     revalidatePath('/dashboard')
@@ -375,42 +395,41 @@ export async function attemptBreakthrough(input: {
  */
 export async function stabilizeRealm() {
   const userId = await getCurrentUserId()
+  const supabase = await createServerSupabaseClient()
 
-  const player = await prisma.player.findUnique({
-    where: { userId }
-  })
+  const { data: player } = await supabase
+    .from('players')
+    .select('id, inner_demon, spirit_stones, history')
+    .eq('user_id', userId)
+    .single()
 
   if (!player) {
     throw new Error('玩家不存在')
   }
 
-  // 需要消耗时间和资源来稳固境界
-  const stabilizeCost = 50 // 灵石消耗
+  const stabilizeCost = 50
 
-  if (player.spiritStones < stabilizeCost) {
+  if (player.spirit_stones < stabilizeCost) {
     throw new Error('灵石不足')
   }
 
-  const innerDemonReduction = Math.min(player.innerDemon, 20)
+  const innerDemonReduction = Math.min(player.inner_demon, 20)
 
-  const updatedPlayer = await prisma.player.update({
-    where: { id: player.id },
-    data: {
-      innerDemon: {
-        decrement: innerDemonReduction
-      },
-      spiritStones: {
-        decrement: stabilizeCost
-      },
-      history: {
-        push: {
-          type: 'STABILIZE',
-          timestamp: new Date().toISOString(),
-          innerDemonReduced: innerDemonReduction
-        }
-      }
-    }
+  const history = Array.isArray(player.history) ? player.history : []
+  history.push({
+    type: 'STABILIZE',
+    timestamp: new Date().toISOString(),
+    innerDemonReduced: innerDemonReduction
   })
+
+  await supabase
+    .from('players')
+    .update({
+      inner_demon: player.inner_demon - innerDemonReduction,
+      spirit_stones: player.spirit_stones - stabilizeCost,
+      history
+    })
+    .eq('id', player.id)
 
   revalidatePath('/cultivation')
 

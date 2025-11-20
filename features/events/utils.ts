@@ -1,5 +1,5 @@
 import type { EventContext } from './types';
-import type { Player } from '@prisma/client';
+import type { Player } from '@/types/enums';
 
 export function buildEventContext(
   player: Player,

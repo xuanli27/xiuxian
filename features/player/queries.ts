@@ -1,137 +1,135 @@
-import { prisma } from '@/lib/db/prisma'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
+import { getCurrentUserId } from '@/lib/auth/supabase-auth'
 import { cache } from 'react'
-
-import { getCurrentUserId } from '@/lib/auth/guards'
+import type { Player } from '@/types/database'
 
 /**
  * 获取当前登录用户的玩家信息
- * 这个函数不使用React cache, 适合在客户端通过React Query调用
  */
-export async function getCurrentPlayer() {
+export async function getCurrentPlayer(): Promise<Player | null> {
   const userId = await getCurrentUserId()
-  // 确保在没有玩家时返回 null 而不是抛出错误
-  const player = await prisma.player.findUnique({
-    where: { userId },
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
-        },
-      },
-    },
-  })
-  return player
+  const supabase = await createServerSupabaseClient()
+  
+  const { data, error } = await supabase
+    .from('players')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+  
+  if (error) {
+    console.error('获取玩家失败:', error)
+    return null
+  }
+  
+  return data
 }
-
-/**
- * Player查询函数 (使用React cache优化)
- */
 
 /**
  * 根据用户ID获取玩家
  */
-export const getPlayerByUserId = cache(async (userId: string) => {
-  return await prisma.player.findUnique({
-    where: { userId },
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
-        }
-      }
-    }
-  })
+export const getPlayerByUserId = cache(async (userId: string): Promise<Player | null> => {
+  const supabase = await createServerSupabaseClient()
+  
+  const { data, error } = await supabase
+    .from('players')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+  
+  if (error) {
+    console.error('获取玩家失败:', error)
+    return null
+  }
+  
+  return data
 })
 
 /**
  * 根据玩家ID获取玩家
  */
-export const getPlayerById = cache(async (id: number) => {
-  return await prisma.player.findUnique({
-    where: { id },
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
-        }
-      }
-    }
-  })
+export const getPlayerById = cache(async (id: number): Promise<Player | null> => {
+  const supabase = await createServerSupabaseClient()
+  
+  const { data, error } = await supabase
+    .from('players')
+    .select('*')
+    .eq('id', id)
+    .single()
+  
+  if (error) {
+    console.error('获取玩家失败:', error)
+    return null
+  }
+  
+  return data
 })
 
 /**
  * 获取所有玩家(用于排行榜)
  */
-export const getAllPlayers = cache(async (limit: number = 100) => {
-  return await prisma.player.findMany({
-    take: limit,
-    orderBy: {
-      level: 'desc'
-    },
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
-        }
-      }
-    }
-  })
+export const getAllPlayers = cache(async (limit: number = 100): Promise<Player[]> => {
+  const supabase = await createServerSupabaseClient()
+  
+  const { data, error } = await supabase
+    .from('players')
+    .select('*')
+    .order('level', { ascending: false })
+    .limit(limit)
+  
+  if (error) {
+    console.error('获取玩家列表失败:', error)
+    return []
+  }
+  
+  return data || []
 })
 
 /**
  * 根据境界筛选玩家
  */
-export const getPlayersByRealm = cache(async (rank: string) => {
-  return await prisma.player.findMany({
-    where: { rank: rank as any },
-    orderBy: {
-      level: 'desc'
-    },
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
-        }
-      }
-    }
-  })
+export const getPlayersByRealm = cache(async (rank: string): Promise<Player[]> => {
+  const supabase = await createServerSupabaseClient()
+  
+  const { data, error } = await supabase
+    .from('players')
+    .select('*')
+    .eq('rank', rank)
+    .order('level', { ascending: false })
+  
+  if (error) {
+    console.error('获取玩家列表失败:', error)
+    return []
+  }
+  
+  return data || []
 })
 
 /**
  * 获取玩家统计数据
  */
 export const getPlayerStats = cache(async (playerId: number) => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: {
-      id: true,
-      name: true,
-      rank: true,
-      level: true,
-      qi: true,
-      maxQi: true,
-      spiritRoot: true,
-      spiritStones: true,
-      contribution: true,
-    }
-  })
+  const supabase = await createServerSupabaseClient()
   
-  if (!player) return null
+  const { data, error } = await supabase
+    .from('players')
+    .select('id, name, rank, level, qi, max_qi, spirit_root, spirit_stones, contribution')
+    .eq('id', playerId)
+    .single()
+  
+  if (error) {
+    console.error('获取玩家统计失败:', error)
+    return null
+  }
   
   return {
-    id: player.id,
-    name: player.name,
-    rank: player.rank,
-    level: player.level,
-    qi: player.qi,
-    maxQi: player.maxQi,
-    spiritRoot: player.spiritRoot,
-    spiritStones: player.spiritStones,
-    contribution: player.contribution,
+    id: data.id,
+    name: data.name,
+    rank: data.rank,
+    level: data.level,
+    qi: data.qi,
+    maxQi: data.max_qi,
+    spiritRoot: data.spirit_root,
+    spiritStones: data.spirit_stones,
+    contribution: data.contribution,
   }
 })

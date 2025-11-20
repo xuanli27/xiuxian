@@ -1,7 +1,7 @@
 'use server'
 
-import { prisma } from '@/lib/db/prisma'
-import { getCurrentUserId } from '@/lib/auth/guards'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
+import { getCurrentUserId } from '@/lib/auth/supabase-auth'
 import { revalidatePath } from 'next/cache'
 import {
   createPlayerSchema,
@@ -9,31 +9,26 @@ import {
   addQiSchema,
   addSpiritStonesSchema
 } from './schemas'
-import { calculateExpForLevel } from '@/lib/game/formulas'
-
-/**
- * Player Server Actions
- */
 
 /**
  * 获取当前登录用户的玩家信息
- * 这是一个 Server Action, 可以在客户端直接调用
  */
 export async function getCurrentPlayer() {
   const userId = await getCurrentUserId()
-  // 确保在没有玩家时返回 null 而不是抛出错误
-  const player = await prisma.player.findUnique({
-    where: { userId },
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
-        },
-      },
-    },
-  })
-  return player
+  const supabase = await createServerSupabaseClient()
+  
+  const { data, error } = await supabase
+    .from('players')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+  
+  if (error) {
+    console.error('获取玩家失败:', error)
+    return null
+  }
+  
+  return data
 }
 
 /**
@@ -41,35 +36,42 @@ export async function getCurrentPlayer() {
  */
 export async function createPlayer(input: { name: string; spiritRoot: string }) {
   const userId = await getCurrentUserId()
-
-  // 验证输入
   const validated = createPlayerSchema.parse(input)
+  const supabase = await createServerSupabaseClient()
 
   // 检查是否已有玩家
-  const existing = await prisma.player.findUnique({
-    where: { userId }
-  })
+  const { data: existing } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
 
   if (existing) {
     throw new Error('玩家已存在')
   }
 
   // 创建玩家
-  const player = await prisma.player.create({
-    data: {
-      userId,
+  const { data: player, error } = await supabase
+    .from('players')
+    .insert({
+      user_id: userId,
       name: validated.name,
-      spiritRoot: validated.spiritRoot,
-      rank: 'QI_REFINING', // 使用正确的 rank 字段和枚举值
+      spirit_root: validated.spiritRoot,
+      rank: 'QI_REFINING',
       level: 1,
       qi: 0,
-      maxQi: 100,
-      innerDemon: 0,
+      max_qi: 100,
+      inner_demon: 0,
       contribution: 0,
-      spiritStones: 0,
-      caveLevel: 1,
-    }
-  })
+      spirit_stones: 0,
+      cave_level: 1,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`创建玩家失败: ${error.message}`)
+  }
 
   revalidatePath('/')
   return { success: true, player }
@@ -87,81 +89,104 @@ export async function updatePlayer(input: {
   spiritStones?: number
 }) {
   const userId = await getCurrentUserId()
-
-  // 验证输入
   const validated = updatePlayerSchema.parse(input)
+  const supabase = await createServerSupabaseClient()
 
-  // 更新玩家
-  const player = await prisma.player.update({
-    where: { userId },
-    data: validated
-  })
+  // 转换字段名
+  const updateData: any = {}
+  if (validated.name) updateData.name = validated.name
+  if (validated.rank) updateData.rank = validated.rank
+  if (validated.level) updateData.level = validated.level
+  if (validated.qi !== undefined) updateData.qi = validated.qi
+  if (validated.maxQi) updateData.max_qi = validated.maxQi
+  if (validated.spiritStones !== undefined) updateData.spirit_stones = validated.spiritStones
+
+  const { data: player, error } = await supabase
+    .from('players')
+    .update(updateData)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`更新玩家失败: ${error.message}`)
+  }
 
   revalidatePath('/')
   return { success: true, player }
 }
 
 /**
- * 增加经验值
+ * 增加灵气
  */
 export async function addQi(playerId: number, amount: number) {
   const userId = await getCurrentUserId()
-
-  // 验证输入
   const validated = addQiSchema.parse({ playerId, amount })
+  const supabase = await createServerSupabaseClient()
 
   // 获取玩家
-  const player = await prisma.player.findUnique({
-    where: { id: validated.playerId }
-  })
+  const { data: player, error: fetchError } = await supabase
+    .from('players')
+    .select('*')
+    .eq('id', validated.playerId)
+    .single()
 
-  // 验证玩家所有权
-  if (player && player.userId !== userId) {
-    throw new Error('无权操作此玩家')
-  }
-
-  if (!player) {
+  if (fetchError || !player) {
     throw new Error('玩家不存在')
   }
 
+  // 验证所有权
+  if (player.user_id !== userId) {
+    throw new Error('无权操作此玩家')
+  }
+
   // 增加灵气
-  const newQi = player.qi + validated.amount
-  const updated = await prisma.player.update({
-    where: { id: validated.playerId },
-    data: { qi: Math.min(newQi, player.maxQi) }
-  })
+  const newQi = Math.min(Number(player.qi) + validated.amount, Number(player.max_qi))
+  const { data: updated, error } = await supabase
+    .from('players')
+    .update({ qi: newQi })
+    .eq('id', validated.playerId)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`更新灵气失败: ${error.message}`)
+  }
 
   revalidatePath('/')
   return { success: true, player: updated, leveledUp: false }
 }
 
 /**
- * 增加货币
+ * 增加灵石
  */
 export async function addSpiritStones(playerId: number, amount: number) {
   const userId = await getCurrentUserId()
-
-  // 验证输入
   const validated = addSpiritStonesSchema.parse({ playerId, amount })
+  const supabase = await createServerSupabaseClient()
 
   // 获取玩家验证所有权
-  const existingPlayer = await prisma.player.findUnique({
-    where: { id: validated.playerId }
-  })
+  const { data: existingPlayer, error: fetchError } = await supabase
+    .from('players')
+    .select('user_id, spirit_stones')
+    .eq('id', validated.playerId)
+    .single()
 
-  if (!existingPlayer || existingPlayer.userId !== userId) {
+  if (fetchError || !existingPlayer || existingPlayer.user_id !== userId) {
     throw new Error('玩家不存在或无权操作')
   }
 
   // 更新灵石
-  const player = await prisma.player.update({
-    where: { id: validated.playerId },
-    data: {
-      spiritStones: {
-        increment: validated.amount
-      }
-    }
-  })
+  const { data: player, error } = await supabase
+    .from('players')
+    .update({ spirit_stones: existingPlayer.spirit_stones + validated.amount })
+    .eq('id', validated.playerId)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`更新灵石失败: ${error.message}`)
+  }
 
   revalidatePath('/')
   return { success: true, player }
@@ -172,24 +197,26 @@ export async function addSpiritStones(playerId: number, amount: number) {
  */
 export async function levelUpRealm(playerId: number) {
   const userId = await getCurrentUserId()
+  const supabase = await createServerSupabaseClient()
 
-  const player = await prisma.player.findUnique({
-    where: { id: playerId }
-  })
+  const { data: player, error } = await supabase
+    .from('players')
+    .select('*')
+    .eq('id', playerId)
+    .single()
 
-  if (!player) {
+  if (error || !player) {
     throw new Error('玩家不存在')
   }
 
   // TODO: 实现境界升级逻辑
-  // 这里需要根据经验值和当前境界判断是否可以升级
 
   revalidatePath('/')
   return { success: true, message: '境界突破成功!' }
 }
 
 /**
- * 更新玩家进度（用于本地状态同步）
+ * 更新玩家进度
  */
 export async function updatePlayerProgress(input: {
   playerId: number
@@ -199,26 +226,35 @@ export async function updatePlayerProgress(input: {
   caveLevel: number
 }) {
   const userId = await getCurrentUserId()
+  const supabase = await createServerSupabaseClient()
 
   // 验证玩家所有权
-  const player = await prisma.player.findUnique({
-    where: { id: input.playerId }
-  })
+  const { data: player, error: fetchError } = await supabase
+    .from('players')
+    .select('user_id')
+    .eq('id', input.playerId)
+    .single()
 
-  if (!player || player.userId !== userId) {
+  if (fetchError || !player || player.user_id !== userId) {
     throw new Error('无权操作此玩家')
   }
 
   // 更新进度
-  const updated = await prisma.player.update({
-    where: { id: input.playerId },
-    data: {
+  const { data: updated, error } = await supabase
+    .from('players')
+    .update({
       qi: input.qi,
-      innerDemon: input.innerDemon,
-      spiritStones: input.spiritStones,
-      caveLevel: input.caveLevel,
-    }
-  })
+      inner_demon: input.innerDemon,
+      spirit_stones: input.spiritStones,
+      cave_level: input.caveLevel,
+    })
+    .eq('id', input.playerId)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`更新进度失败: ${error.message}`)
+  }
 
   return { success: true, player: updated }
 }

@@ -4,7 +4,7 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Card } from '@/components/ui';
 import { getAvailableTasks, acceptTask, completeTask, generateNextTask } from '@/features/tasks/actions';
-import type { Task } from '@prisma/client';
+import type { Task } from '@/types/enums';
 import { toast } from 'sonner';
 import { Scroll, CheckCircle2, RefreshCw, MapPin, Sword, BookOpen } from 'lucide-react';
 import clsx from 'clsx';

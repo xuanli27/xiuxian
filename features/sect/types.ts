@@ -1,8 +1,9 @@
-import { SectRank } from '@prisma/client'
-
 /**
  * 门派系统类型定义
  */
+
+// 宗门职位枚举
+export type SectRank = 'OUTER' | 'INNER' | 'CORE' | 'ELDER' | 'LEADER'
 
 // 门派职位信息
 export type SectPosition = {

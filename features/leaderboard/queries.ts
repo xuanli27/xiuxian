@@ -1,143 +1,187 @@
-import { cache } from 'react';
-import { prisma } from '@/lib/db/prisma';
-import type { LeaderboardCategory, LeaderboardResponse, Season } from './types';
-import { Rank, type Prisma } from '@prisma/client';
+import { cache } from 'react'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
+import type { LeaderboardCategory, LeaderboardResponse, Season } from './types'
+import type { LeaderboardEntry as DBLeaderboardEntry } from '@/types/database'
 
 // 动态导入 Redis（仅在服务端）
 const getRedis = async () => {
-  if (typeof window !== 'undefined') return { redis: null, isRedisEnabled: () => false };
-  const { redis, isRedisEnabled } = await import('@/lib/db/redis');
-  return { redis, isRedisEnabled };
-};
-
-async function getActiveSeason(): Promise<Season> {
-  let season = await prisma.season.findFirst({
-    where: { isActive: true },
-  });
-
-  if (!season) {
-    // This logic should ideally be in a cron job or a guarded admin action,
-    // but for simplicity, we create it on-demand here.
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const quarter = Math.ceil(month / 3);
-    const id = `${year}-Q${quarter}`;
-    
-    season = await prisma.season.create({
-      data: {
-        id,
-        name: `${year}年第${quarter}季度`,
-        startDate: new Date(year, (quarter - 1) * 3, 1),
-        endDate: new Date(year, quarter * 3, 0),
-        isActive: true,
-      },
-    });
-  }
-  return season as Season;
+  if (typeof window !== 'undefined') return { redis: null, isRedisEnabled: () => false }
+  const { redis, isRedisEnabled } = await import('@/lib/db/redis')
+  return { redis, isRedisEnabled }
 }
 
-const LEADERBOARD_CACHE_TTL = 300; // 5 minutes
+async function getActiveSeason(): Promise<Season> {
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: season, error } = await supabase
+    .from('seasons')
+    .select('*')
+    .eq('is_active', true)
+    .single()
+
+  if (!error && season) {
+    return season as Season
+  }
+
+  // 创建新赛季
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1
+  const quarter = Math.ceil(month / 3)
+  const id = `${year}-Q${quarter}`
+  
+  const { data: newSeason, error: createError } = await supabase
+    .from('seasons')
+    .insert({
+      id,
+      name: `${year}年第${quarter}季度`,
+      start_date: new Date(year, (quarter - 1) * 3, 1).toISOString(),
+      end_date: new Date(year, quarter * 3, 0).toISOString(),
+      is_active: true,
+    })
+    .select()
+    .single()
+
+  if (createError) {
+    throw new Error(`创建赛季失败: ${createError.message}`)
+  }
+
+  return newSeason as Season
+}
+
+const LEADERBOARD_CACHE_TTL = 300 // 5 minutes
 
 export const getLeaderboard = cache(async (
   category: LeaderboardCategory,
   page: number = 1,
   pageSize: number = 20
 ): Promise<LeaderboardResponse> => {
-  const season = await getActiveSeason();
-  const cacheKey = `leaderboard:${season.id}:${category}:${page}:${pageSize}`;
+  const season = await getActiveSeason()
+  const cacheKey = `leaderboard:${season.id}:${category}:${page}:${pageSize}`
 
-  const { redis, isRedisEnabled } = await getRedis();
+  const { redis, isRedisEnabled } = await getRedis()
   if (isRedisEnabled() && redis) {
     try {
-      const cached = await redis.get(cacheKey);
-      if (cached) return JSON.parse(cached);
+      const cached = await redis.get(cacheKey)
+      if (cached) return JSON.parse(cached)
     } catch (error) {
-      console.error('Redis read error:', error);
+      console.error('Redis read error:', error)
     }
   }
 
-  let orderBy: Prisma.LeaderboardOrderByWithRelationInput = {};
+  const supabase = await createServerSupabaseClient()
+  
+  let orderColumn: string
   switch (category) {
     case 'REALM':
-      orderBy = { realmScore: 'desc' };
-      break;
+      orderColumn = 'realm_score'
+      break
     case 'POWER':
-      orderBy = { powerScore: 'desc' };
-      break;
+      orderColumn = 'power_score'
+      break
     case 'WEALTH':
-      orderBy = { wealthScore: 'desc' };
-      break;
+      orderColumn = 'wealth_score'
+      break
     case 'CONTRIBUTION':
-      orderBy = { contributionScore: 'desc' };
-      break;
+      orderColumn = 'contribution_score'
+      break
   }
 
-  const [entries, totalEntries] = await prisma.$transaction([
-    prisma.leaderboard.findMany({
-      where: { seasonId: season.id },
-      orderBy,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.leaderboard.count({
-      where: { seasonId: season.id },
-    }),
-  ]);
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
 
-  const totalPages = Math.ceil(totalEntries / pageSize);
+  const [entriesResult, countResult] = await Promise.all([
+    supabase
+      .from('leaderboard')
+      .select('*')
+      .eq('season_id', season.id)
+      .order(orderColumn, { ascending: false })
+      .range(from, to),
+    supabase
+      .from('leaderboard')
+      .select('*', { count: 'exact', head: true })
+      .eq('season_id', season.id)
+  ])
+
+  if (entriesResult.error) {
+    throw new Error(`查询排行榜失败: ${entriesResult.error.message}`)
+  }
+
+  const entries = entriesResult.data || []
+  const totalEntries = countResult.count || 0
+  const totalPages = Math.ceil(totalEntries / pageSize)
 
   const result = {
     category,
     season,
     entries: entries.map((entry, index) => ({
       ...entry,
-      ranking: (page - 1) * pageSize + index + 1,
+      ranking: from + index + 1,
     })),
     currentPage: page,
     totalPages,
     totalEntries,
-  };
+  }
 
-  const { redis: redisWrite, isRedisEnabled: isEnabled } = await getRedis();
+  const { redis: redisWrite, isRedisEnabled: isEnabled } = await getRedis()
   if (isEnabled() && redisWrite) {
     try {
-      await redisWrite.set(cacheKey, JSON.stringify(result), 'EX', LEADERBOARD_CACHE_TTL);
+      await redisWrite.set(cacheKey, JSON.stringify(result), 'EX', LEADERBOARD_CACHE_TTL)
     } catch (error) {
-      console.error('Redis write error:', error);
+      console.error('Redis write error:', error)
     }
   }
 
-  return result as unknown as LeaderboardResponse;
-});
+  return result as unknown as LeaderboardResponse
+})
 
 export const getPlayerRank = cache(async (
   playerId: number,
   category: LeaderboardCategory
 ): Promise<{ rank: number } | null> => {
-  const season = await getActiveSeason();
-  const entry = await prisma.leaderboard.findUnique({
-    where: { playerId_seasonId: { playerId, seasonId: season.id } },
-  });
+  const season = await getActiveSeason()
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: entry, error } = await supabase
+    .from('leaderboard')
+    .select('*')
+    .eq('player_id', playerId)
+    .eq('season_id', season.id)
+    .single()
 
-  if (!entry) return null;
+  if (error || !entry) return null
 
-  let countQuery: Prisma.LeaderboardCountArgs = { where: { seasonId: season.id } };
+  let scoreColumn: string
+  let scoreValue: number
   switch (category) {
     case 'REALM':
-      countQuery.where!.realmScore = { gt: entry.realmScore };
-      break;
+      scoreColumn = 'realm_score'
+      scoreValue = entry.realm_score
+      break
     case 'POWER':
-      countQuery.where!.powerScore = { gt: entry.powerScore };
-      break;
+      scoreColumn = 'power_score'
+      scoreValue = entry.power_score
+      break
     case 'WEALTH':
-      countQuery.where!.wealthScore = { gt: entry.wealthScore };
-      break;
+      scoreColumn = 'wealth_score'
+      scoreValue = entry.wealth_score
+      break
     case 'CONTRIBUTION':
-      countQuery.where!.contributionScore = { gt: entry.contributionScore };
-      break;
+      scoreColumn = 'contribution_score'
+      scoreValue = entry.contribution_score
+      break
   }
 
-  const higherRankedCount = await prisma.leaderboard.count(countQuery);
-  return { rank: higherRankedCount + 1 };
-});
+  const { count, error: countError } = await supabase
+    .from('leaderboard')
+    .select('*', { count: 'exact', head: true })
+    .eq('season_id', season.id)
+    .gt(scoreColumn, scoreValue)
+
+  if (countError) {
+    console.error('查询排名失败:', countError)
+    return null
+  }
+
+  return { rank: (count || 0) + 1 }
+})

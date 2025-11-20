@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Crown } from 'lucide-react';
-import type { Player } from '@prisma/client';
+import type { Player } from '@/types/enums';
 import { formatSectRank } from '@/lib/utils/format';
 
 interface Props {

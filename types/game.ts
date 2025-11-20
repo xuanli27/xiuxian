@@ -1,4 +1,4 @@
-import type { Task as PrismaTask } from '@prisma/client'
+import type { Task as PrismaTask } from '@/types/enums'
 
 /**
  * 游戏相关类型定义

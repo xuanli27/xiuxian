@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getCurrentPlayer } from '@/features/player/actions'
 import { startMeditation, attemptBreakthrough } from '@/features/cultivation/actions'
-import type { Player } from '@prisma/client'
+import type { Player } from '@/types/enums'
 
 // 定义查询的key, 以便在整个应用中复用
 const playerQueryKey = ['player']

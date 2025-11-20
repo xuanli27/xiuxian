@@ -1,8 +1,8 @@
 'use server'
 
 import { getTribulationDashboardData as getTribulationDashboardDataQuery } from './queries'
-import { prisma } from '@/lib/db/prisma'
-import { getCurrentUserId } from '@/lib/auth/guards'
+import { createServerSupabaseClient } from '@/lib/db/supabase'
+import { getCurrentUserId } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
 import type { TribulationDashboard } from './types'
 
@@ -11,10 +11,13 @@ import type { TribulationDashboard } from './types'
  */
 export async function getTribulationDashboardData(): Promise<TribulationDashboard> {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId },
-    select: { id: true }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .single()
   
   if (!player) {
     return {
@@ -46,9 +49,14 @@ export async function getTribulationDashboardData(): Promise<TribulationDashboar
  */
 export async function startTribulation(input: { playerId: number }) {
   const userId = await getCurrentUserId()
-  const player = await prisma.player.findUnique({
-    where: { userId, id: input.playerId }
-  })
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('id', input.playerId)
+    .single()
   
   if (!player) {
     throw new Error('玩家不存在')

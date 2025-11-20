@@ -8,7 +8,7 @@ import clsx from 'clsx';
 import { getPlayerCave, getCaveStats, upgradeCave } from '@/features/cave/actions';
 import { CAVE_CONFIG } from '@/config/game';
 import { calculateCaveUpgradeCost } from '@/features/cave/utils';
-import type { Player } from '@prisma/client';
+import type { Player } from '@/types/enums';
 import type { Cave } from '@/features/cave/types';
 
 interface Props {
@@ -121,7 +121,7 @@ export const CaveManager: React.FC<Props> = ({ initialCave, player }) => {
                 装修所需材料
               </div>
               <div className="space-y-3">
-                <CostItem name="灵石" current={player.spiritStones} cost={upgradeCost.spiritStones} icon="💎" />
+                <CostItem name="灵石" current={player.spirit_stones} cost={upgradeCost.spiritStones} icon="💎" />
                 {Object.entries(upgradeCost.materials).map(([matId, cost]) => (
                   <CostItem key={matId} name={matId} current={0} cost={cost} icon={'📦'} />
                 ))}
